@@ -18,42 +18,16 @@ import { colors } from '../theme/colors';
 import { Fonts } from '../common/fonts';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchFeaturedProducts, fetchCategories } from '../store/slices/productsSlice';
+import { fetchBanners } from '../store/slices/bannersSlice';
 import { useTheme } from '../theme/ThemeContext';
 
 const { width } = Dimensions.get('window');
-
-// Hero banner data
-const HERO_BANNERS = [
-  {
-    id: 1,
-    title: 'New Arrival',
-    subtitle: 'Kundan Gold Collection',
-    image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800&h=400&fit=crop',
-  },
-  {
-    id: 2,
-    title: 'Special Offer',
-    subtitle: 'Diamond Bangles 20% OFF',
-    image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=400&fit=crop',
-  },
-  {
-    id: 3,
-    title: 'Festive Collection',
-    subtitle: 'Traditional Meenakari Sets',
-    image: 'https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=800&h=400&fit=crop',
-  },
-  {
-    id: 4,
-    title: 'Modern Designs',
-    subtitle: 'Contemporary Style for You',
-    image: 'https://images.unsplash.com/photo-1590736969955-71cc94901144?w=800&h=400&fit=crop',
-  },
-];
 
 export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { theme } = useTheme();
   const dispatch = useAppDispatch();
   const { featuredProducts, categories, loading } = useAppSelector((state) => state.products);
+  const { banners, loading: bannersLoading } = useAppSelector((state) => state.banners);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const flatListRef = React.useRef<FlatList>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -64,22 +38,23 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   // Auto-scroll carousel
   useEffect(() => {
-    if (HERO_BANNERS.length === 0) return;
+    if (banners.length === 0) return;
 
     const interval = setInterval(() => {
       setCurrentBannerIndex((prevIndex) => {
-        const nextIndex = (prevIndex + 1) % HERO_BANNERS.length;
+        const nextIndex = (prevIndex + 1) % banners.length;
         flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
         return nextIndex;
       });
     }, 3000); // Change slide every 3 seconds
 
     return () => clearInterval(interval);
-  }, []);
+  }, [banners]);
 
   const loadHomeData = async () => {
     try {
       await Promise.all([
+        dispatch(fetchBanners()),
         dispatch(fetchFeaturedProducts(10)),
         dispatch(fetchCategories()),
       ]);
@@ -103,45 +78,59 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     navigation.navigate('ProductDetails', { slug: productSlug });
   };
 
-  const renderWelcomeSection = () => (
-    <View style={styles.bannerContainer}>
-      <FlatList
-        ref={flatListRef}
-        data={HERO_BANNERS}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={(item) => item.id.toString()}
-        onMomentumScrollEnd={(event) => {
-          const index = Math.round(event.nativeEvent.contentOffset.x / width);
-          setCurrentBannerIndex(index);
-        }}
-        renderItem={({ item }) => (
-          <LinearGradient
-            colors={[colors.primary.main, colors.secondary.main]}
-            style={styles.welcomeSection}
-          >
-            <Image source={{ uri: item.image }} style={styles.bannerImage} />
-            <View style={styles.bannerOverlay}>
-              <Text style={styles.bannerTitle}>{item.title}</Text>
-              <Text style={styles.bannerSubtitle}>{item.subtitle}</Text>
-            </View>
-          </LinearGradient>
-        )}
-      />
-      <View style={styles.paginationContainer}>
-        {HERO_BANNERS.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.paginationDot,
-              currentBannerIndex === index && styles.paginationDotActive,
-            ]}
-          />
-        ))}
+  const renderWelcomeSection = () => {
+    if (bannersLoading) {
+      return (
+        <View style={[styles.bannerContainer, { justifyContent: 'center', alignItems: 'center' }]}>
+          <ActivityIndicator size="large" color={colors.primary.main} />
+        </View>
+      );
+    }
+
+    if (banners.length === 0) {
+      return null; // Don't show banner section if no banners
+    }
+
+    return (
+      <View style={styles.bannerContainer}>
+        <FlatList
+          ref={flatListRef}
+          data={banners}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(item) => item.id.toString()}
+          onMomentumScrollEnd={(event) => {
+            const index = Math.round(event.nativeEvent.contentOffset.x / width);
+            setCurrentBannerIndex(index);
+          }}
+          renderItem={({ item }) => (
+            <LinearGradient
+              colors={[colors.primary.main, colors.secondary.main]}
+              style={styles.welcomeSection}
+            >
+              <Image source={{ uri: item.imageUrl }} style={styles.bannerImage} />
+              <View style={styles.bannerOverlay}>
+                <Text style={styles.bannerTitle}>{item.title}</Text>
+                <Text style={styles.bannerSubtitle}>{item.subtitle}</Text>
+              </View>
+            </LinearGradient>
+          )}
+        />
+        <View style={styles.paginationContainer}>
+          {banners.map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.paginationDot,
+                currentBannerIndex === index && styles.paginationDotActive,
+              ]}
+            />
+          ))}
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderQuickActions = () => (
     <View style={styles.quickActionsContainer}>

@@ -53,6 +53,11 @@ export const API_CONFIG = {
             DETAILS: (id: number) => `/orders/${id}`,
         },
 
+        // Banners
+        BANNERS: {
+            LIST: '/banners',
+        },
+
         // Payments
         PAYMENTS: {
             INITIATE: '/payments/initiate',
