@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,147 +7,94 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { CustomHeader } from '../components/CustomHeader';
 import { colors } from '../theme/colors';
 import { Fonts } from '../common/fonts';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { fetchProductBySlug, clearSelectedProduct } from '../store/slices/productsSlice';
+import { addToCart } from '../store/slices/cartSlice';
 
 const { width } = Dimensions.get('window');
 
 // Bangle sizes in inches
 const BANGLE_SIZES = ['2.2', '2.4', '2.6', '2.8'];
 
-interface Product {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  discount_price?: number;
-  images: string[];
-  rating: number;
-  reviews_count: number;
-  category: string;
-}
-
-// Dummy products data
-const DUMMY_PRODUCTS: Product[] = [
-  {
-    id: 1,
-    name: 'Royal Kundan Gold Bangles',
-    description: 'Exquisite kundan work on 22K gold bangles. Features traditional Rajasthani craftsmanship with intricate stone settings. Perfect for weddings and festive occasions. Comes in a beautiful velvet box.',
-    price: 18999,
-    discount_price: 15999,
-    images: [
-      'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800&h=800&fit=crop',
-      'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=800&fit=crop',
-      'https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=800&h=800&fit=crop',
-    ],
-    rating: 4.8,
-    reviews_count: 342,
-    category: 'Gold',
-  },
-  {
-    id: 2,
-    name: 'Diamond Studded Pearl Bangles',
-    description: 'Elegant diamond-studded bangles with premium South Sea pearls. 18K white gold setting with VS clarity diamonds. Ideal for grand occasions and celebrations.',
-    price: 32999,
-    discount_price: 28999,
-    images: [
-      'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=800&fit=crop',
-      'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800&h=800&fit=crop',
-      'https://images.unsplash.com/photo-1590736969955-71cc94901144?w=800&h=800&fit=crop',
-    ],
-    rating: 4.9,
-    reviews_count: 567,
-    category: 'Diamond',
-  },
-  {
-    id: 3,
-    name: 'Meenakari Colorful Bangles Set',
-    description: 'Traditional Jaipur meenakari work with vibrant colors on brass base. Hand-painted by skilled artisans. Set of 6 bangles with matching colors. Lightweight and comfortable for daily wear.',
-    price: 4999,
-    discount_price: 3499,
-    images: [
-      'https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=800&h=800&fit=crop',
-      'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800&h=800&fit=crop',
-      'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=800&fit=crop',
-    ],
-    rating: 4.6,
-    reviews_count: 789,
-    category: 'Meenakari',
-  },
-  {
-    id: 4,
-    name: 'Antique Temple Design Bangles',
-    description: 'Beautiful temple-inspired designs with deity motifs. Made with oxidized silver finish. Features traditional South Indian temple architecture patterns. Set includes 4 bangles.',
-    price: 14999,
-    discount_price: 12499,
-    images: [
-      'https://images.unsplash.com/photo-1590736969955-71cc94901144?w=800&h=800&fit=crop',
-      'https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=800&h=800&fit=crop',
-      'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800&h=800&fit=crop',
-    ],
-    rating: 4.7,
-    reviews_count: 423,
-    category: 'Gold',
-  },
-  {
-    id: 5,
-    name: 'Glass Bangles Rainbow Set',
-    description: 'Colorful glass bangles in vibrant rainbow shades. Traditional lac work with mirror embellishments. Set of 12 bangles perfect for festivals. Hyderabad special collection.',
-    price: 1999,
-    discount_price: 1299,
-    images: [
-      'https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=800&h=800&fit=crop',
-      'https://images.unsplash.com/photo-1590736969955-71cc94901144?w=800&h=800&fit=crop',
-      'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=800&fit=crop',
-    ],
-    rating: 4.4,
-    reviews_count: 1205,
-    category: 'Glass',
-  },
-  {
-    id: 6,
-    name: 'Modern Geometric Metal Bangles',
-    description: 'Contemporary design metal bangles with geometric patterns. Made from high-quality stainless steel with gold plating. Tarnish-resistant and perfect for daily office wear. Set of 3.',
-    price: 3999,
-    discount_price: 2999,
-    images: [
-      'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=800&fit=crop',
-      'https://images.unsplash.com/photo-1590736969955-71cc94901144?w=800&h=800&fit=crop',
-      'https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=800&h=800&fit=crop',
-    ],
-    rating: 4.5,
-    reviews_count: 634,
-    category: 'Metal',
-  },
-];
-
 export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = ({
   navigation,
   route
 }) => {
-  // Get product from route params or use first product as default
-  const productId = route?.params?.productId || 1;
-  const product = DUMMY_PRODUCTS.find(p => p.id === productId) || DUMMY_PRODUCTS[0];
+  const dispatch = useAppDispatch();
+  const { selectedProduct, loading, error } = useAppSelector((state) => state.products);
+  const { actionLoading } = useAppSelector((state) => state.cart);
+  const slug = route?.params?.slug;
 
   const [selectedSize, setSelectedSize] = useState<string>('2.4');
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [quantity, setQuantity] = useState<number>(1);
 
-  const handleAddToCart = () => {
-    // Add to cart logic
-    console.log('Adding to cart:', {
-      product: product,
-      size: selectedSize,
-      quantity
-    });
+  useEffect(() => {
+    if (slug) {
+      dispatch(fetchProductBySlug(slug));
+    }
+    return () => {
+      dispatch(clearSelectedProduct());
+    };
+  }, [dispatch, slug]);
+
+  const handleAddToCart = async () => {
+    if (!selectedProduct) return;
+
+    try {
+      await dispatch(addToCart({
+        productId: selectedProduct.id,
+        quantity,
+        size: selectedSize
+      })).unwrap();
+      Alert.alert('Success', 'Added to cart successfully');
+    } catch (err) {
+      Alert.alert('Error', typeof err === 'string' ? err : 'Failed to add to cart');
+    }
   };
 
-  const handleBuyNow = () => {
-    // Navigate to checkout
-    navigation.navigate('Checkout');
+  const handleBuyNow = async () => {
+    if (!selectedProduct) return;
+
+    try {
+      await dispatch(addToCart({
+        productId: selectedProduct.id,
+        quantity,
+        size: selectedSize
+      })).unwrap();
+      navigation.navigate('Cart');
+    } catch (err) {
+      Alert.alert('Error', typeof err === 'string' ? err : 'Failed to add to cart');
+    }
   };
+
+  if (loading.productDetails) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary.main} />
+      </View>
+    );
+  }
+
+  if (error.productDetails || !selectedProduct) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error.productDetails || 'Product not found'}</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.backButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const { name, description, mrp, sellingPrice, discount, images, specifications } = selectedProduct;
+  const displayImages = images.length > 0 ? images.map(img => img.imageUrl) : ['https://via.placeholder.com/400'];
 
   return (
     <View style={styles.container}>
@@ -157,12 +104,12 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
         {/* Image Carousel */}
         <View style={styles.imageContainer}>
           <Image
-            source={{ uri: product.images[selectedImageIndex] }}
+            source={{ uri: displayImages[selectedImageIndex] }}
             style={styles.mainImage}
             resizeMode="cover"
           />
           <View style={styles.imagePaginationContainer}>
-            {product.images.map((_, index) => (
+            {displayImages.map((_, index) => (
               <TouchableOpacity
                 key={index}
                 style={[
@@ -177,30 +124,31 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
 
         {/* Product Info */}
         <View style={styles.productInfo}>
-          <Text style={styles.productCategory}>{product.category} Bangles</Text>
-          <Text style={styles.productName}>{product.name}</Text>
+          {specifications.material && (
+            <Text style={styles.productCategory}>{specifications.material} Bangles</Text>
+          )}
+          <Text style={styles.productName}>{name}</Text>
 
-          {/* Rating */}
+          {/* Rating - Placeholder as backend doesn't show rating yet */}
           <View style={styles.ratingContainer}>
-            <Text style={styles.ratingText}>⭐ {product.rating}</Text>
-            <Text style={styles.reviewsText}>({product.reviews_count} reviews)</Text>
+            <Text style={styles.ratingText}>⭐ 4.8</Text>
+            <Text style={styles.reviewsText}>(120 reviews)</Text>
           </View>
 
           {/* Price */}
           <View style={styles.priceContainer}>
-            {product.discount_price && (
+            {discount > 0 ? (
               <>
-                <Text style={styles.discountPrice}>₹{product.discount_price}</Text>
-                <Text style={styles.originalPrice}>₹{product.price}</Text>
+                <Text style={styles.discountPrice}>₹{sellingPrice}</Text>
+                <Text style={styles.originalPrice}>₹{mrp}</Text>
                 <View style={styles.discountBadge}>
                   <Text style={styles.discountText}>
-                    {Math.round(((product.price - product.discount_price) / product.price) * 100)}% OFF
+                    {discount}% OFF
                   </Text>
                 </View>
               </>
-            )}
-            {!product.discount_price && (
-              <Text style={styles.discountPrice}>₹{product.price}</Text>
+            ) : (
+              <Text style={styles.discountPrice}>₹{sellingPrice}</Text>
             )}
           </View>
 
@@ -253,7 +201,7 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
           {/* Description */}
           <View style={styles.descriptionSection}>
             <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.description}>{product.description}</Text>
+            <Text style={styles.description}>{description}</Text>
           </View>
         </View>
 
@@ -265,12 +213,18 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
         <TouchableOpacity
           style={styles.addToCartButton}
           onPress={handleAddToCart}
+          disabled={actionLoading?.add}
         >
-          <Text style={styles.addToCartText}>Add to Cart</Text>
+          {actionLoading?.add ? (
+            <ActivityIndicator size="small" color={colors.primary.main} />
+          ) : (
+            <Text style={styles.addToCartText}>Add to Cart</Text>
+          )}
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.buyNowButton}
           onPress={handleBuyNow}
+          disabled={actionLoading?.add}
         >
           <Text style={styles.buyNowText}>Buy Now</Text>
         </TouchableOpacity>
@@ -286,6 +240,33 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: colors.semantic.error,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  backButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: colors.primary.main,
+    borderRadius: 8,
+  },
+  backButtonText: {
+    color: colors.neutral.white,
+    fontWeight: 'bold',
   },
   imageContainer: {
     width: width,

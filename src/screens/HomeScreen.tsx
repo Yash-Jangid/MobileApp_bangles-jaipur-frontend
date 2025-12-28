@@ -16,35 +16,10 @@ import { CustomHeader } from '../components/CustomHeader';
 import { Colors } from '../common/colors';
 import { colors } from '../theme/colors';
 import { Fonts } from '../common/fonts';
-import apiService from '../services/ApiService';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { fetchFeaturedProducts, fetchCategories } from '../store/slices/productsSlice';
 
 const { width } = Dimensions.get('window');
-
-interface Course {
-  id: number;
-  title: string;
-  instructor: string;
-  image: string;
-  price: number;
-  rating: number;
-  students: number;
-}
-
-interface ApiCourse {
-  id: number;
-  title: string;
-  instructor: string;
-  image: string;
-  price: number;
-  category: string;
-}
-
-interface Category {
-  id: number;
-  title: string;
-  icon: string;
-  count: number;
-}
 
 // Hero banner data
 const HERO_BANNERS = [
@@ -66,22 +41,29 @@ const HERO_BANNERS = [
     subtitle: 'Traditional Meenakari Sets',
     image: 'https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=800&h=400&fit=crop',
   },
+  {
+    id: 4,
+    title: 'Modern Designs',
+    subtitle: 'Contemporary Style for You',
+    image: 'https://images.unsplash.com/photo-1590736969955-71cc94901144?w=800&h=400&fit=crop',
+  },
 ];
 
 export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const [featuredCourses, setFeaturedCourses] = useState<Course[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useAppDispatch();
+  const { featuredProducts, categories, loading } = useAppSelector((state) => state.products);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const flatListRef = React.useRef<FlatList>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadHomeData();
-  }, []);
+  }, [dispatch]);
 
   // Auto-scroll carousel
   useEffect(() => {
+    if (HERO_BANNERS.length === 0) return;
+
     const interval = setInterval(() => {
       setCurrentBannerIndex((prevIndex) => {
         const nextIndex = (prevIndex + 1) % HERO_BANNERS.length;
@@ -95,81 +77,28 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const loadHomeData = async () => {
     try {
-      console.log('Loading home data...');
-
-      // Dummy featured bangles data
-      const dummyProducts = [
-        {
-          id: 1,
-          title: 'Royal Kundan Gold Bangles',
-          instructor: 'Traditional Elegance',
-          image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=400&h=300&fit=crop',
-          price: 15999,
-          rating: 4.8,
-          students: 342,
-        },
-        {
-          id: 2,
-          title: 'Diamond Studded Pearl Bangles',
-          instructor: 'Luxury Collection',
-          image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=300&fit=crop',
-          price: 28999,
-          rating: 4.9,
-          students: 567,
-        },
-        {
-          id: 3,
-          title: 'Meenakari Colorful Bangles Set',
-          instructor: 'Rajasthani Craft',
-          image: 'https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=400&h=300&fit=crop',
-          price: 8999,
-          rating: 4.6,
-          students: 789,
-        },
-        {
-          id: 4,
-          title: 'Antique Temple Design Bangles',
-          instructor: 'Heritage Collection',
-          image: 'https://images.unsplash.com/photo-1590736969955-71cc94901144?w=400&h=300&fit=crop',
-          price: 12499,
-          rating: 4.7,
-          students: 423,
-        },
-      ];
-
-      setFeaturedCourses(dummyProducts);
-
-      // Bangles categories
-      setCategories([
-        { id: 1, title: 'Gold', icon: '✨', count: 120 },
-        { id: 2, title: 'Diamond', icon: '💎', count: 85 },
-        { id: 3, title: 'Glass', icon: '🔮', count: 95 },
-        { id: 4, title: 'Metal', icon: '⚡', count: 67 },
+      await Promise.all([
+        dispatch(fetchFeaturedProducts(10)),
+        dispatch(fetchCategories()),
       ]);
     } catch (error) {
       console.error('Error loading home data:', error);
-      setFeaturedCourses([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
     }
   };
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    loadHomeData();
-  };
-
-  const navigateToCourses = () => {
-    navigation.navigate('Collections');
+    await loadHomeData();
+    setRefreshing(false);
   };
 
   const navigateToCategory = (categoryId: number) => {
-    navigation.navigate('CategoryCourses', { categoryId });
+    // Navigate to collections screen with category filter
+    navigation.navigate('Collections', { categoryId });
   };
 
-  const navigateToCourseDetail = (courseId: number) => {
-    navigation.navigate('CourseDetail', { courseId });
+  const navigateToProductDetail = (productSlug: string) => {
+    navigation.navigate('ProductDetails', { slug: productSlug });
   };
 
   const renderWelcomeSection = () => (
@@ -234,7 +163,7 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.quickActionItem}
-          onPress={() => navigation.navigate('Profile')}
+          onPress={() => navigation.navigate('Orders')}
         >
           <Text style={styles.quickActionIcon}>📦</Text>
           <Text style={styles.quickActionText}>My Orders</Text>
@@ -252,23 +181,31 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
-        {categories.map((category) => (
-          <TouchableOpacity
-            key={category.id}
-            style={styles.categoryCard}
-            onPress={() => navigateToCategory(category.id)}
-          >
-            <Text style={styles.categoryIcon}>{category.icon}</Text>
-            <Text style={styles.categoryTitle}>{category.title}</Text>
-            <Text style={styles.categoryCount}>{category.count} bangles</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      {loading.categories ? (
+        <ActivityIndicator size="small" color={colors.primary.main} />
+      ) : categories.length === 0 ? (
+        <Text style={styles.emptySubtitle}>No categories found</Text>
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
+          {categories.map((category) => (
+            <TouchableOpacity
+              key={category.id}
+              style={styles.categoryCard}
+              onPress={() => navigateToCategory(category.id)}
+            >
+              <Text style={styles.categoryIcon}>
+                {/* Use a default icon if image is missing, or map category names to icons */}
+                {category.imageUrl ? '🖼️' : '✨'}
+              </Text>
+              <Text style={styles.categoryTitle}>{category.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 
-  const renderFeaturedCourses = () => (
+  const renderFeaturedProducts = () => (
     <View style={styles.featuredCoursesContainer}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Featured Bangles</Text>
@@ -277,7 +214,11 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {featuredCourses.length === 0 ? (
+      {loading.featuredProducts ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary.main} />
+        </View>
+      ) : !featuredProducts || featuredProducts.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>💍</Text>
           <Text style={styles.emptyTitle}>No bangles available</Text>
@@ -286,22 +227,25 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           </Text>
         </View>
       ) : (
-        featuredCourses.map((course) => (
+        featuredProducts.map((product) => (
           <TouchableOpacity
-            key={course.id}
+            key={product.id}
             style={styles.courseCard}
-            onPress={() => navigateToCourseDetail(course.id)}
+            onPress={() => navigateToProductDetail(product.slug)}
           >
-            <Image source={{ uri: course.image }} style={styles.courseImage} />
+            <Image
+              source={{ uri: product.images[0]?.imageUrl || 'https://via.placeholder.com/150' }}
+              style={styles.courseImage}
+            />
             <View style={styles.courseContent}>
               <Text style={styles.courseTitle} numberOfLines={2}>
-                {course.title}
+                {product.name}
               </Text>
-              <Text style={styles.courseInstructor}>Design: {course.instructor}</Text>
+              <Text style={styles.courseInstructor}>{product.specifications?.material || 'Premium Material'}</Text>
               <View style={styles.courseStats}>
-                <Text style={styles.courseRating}>⭐ {course.rating}</Text>
-                <Text style={styles.courseStudents}>💬 {course.students} reviews</Text>
-                <Text style={styles.coursePrice}>₹{course.price}</Text>
+                {/* Rating is not in product type yet, using static or removing */}
+                <Text style={styles.courseRating}>⭐ 4.8</Text>
+                <Text style={styles.coursePrice}>₹{product.sellingPrice}</Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -309,18 +253,6 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       )}
     </View>
   );
-
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <CustomHeader title="Jaipur Bangles" />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary.main} />
-          <Text style={styles.loadingText}>Loading...</Text>
-        </View>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>
@@ -334,7 +266,7 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         {renderWelcomeSection()}
         {renderQuickActions()}
         {renderCategories()}
-        {renderFeaturedCourses()}
+        {renderFeaturedProducts()}
       </ScrollView>
     </View>
   );
@@ -401,32 +333,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.textLight,
     width: 24,
   },
-  welcomeTitle: {
-    fontSize: Fonts.size.xxxl,
-    fontFamily: Fonts.bold,
-    color: Colors.textLight,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  welcomeSubtitle: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.regular,
-    color: Colors.textLight,
-    textAlign: 'center',
-    opacity: 0.9,
-    marginBottom: 24,
-  },
-  exploreButton: {
-    backgroundColor: Colors.textLight,
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 25,
-  },
-  exploreButtonText: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.semiBold,
-    color: Colors.primary,
-  },
   quickActionsContainer: {
     padding: 20,
   },
@@ -477,6 +383,7 @@ const styles = StyleSheet.create({
     fontSize: Fonts.size.sm,
     fontFamily: Fonts.medium,
     color: Colors.primary,
+    textAlign: 'center',
   },
   categoriesScroll: {
     marginHorizontal: -4,
@@ -504,12 +411,6 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     textAlign: 'center',
     marginBottom: 4,
-  },
-  categoryCount: {
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted,
-    textAlign: 'center',
   },
   featuredCoursesContainer: {
     padding: 20,
@@ -555,27 +456,15 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.medium,
     color: Colors.textSecondary,
   },
-  courseStudents: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.medium,
-    color: Colors.textSecondary,
-  },
   coursePrice: {
     fontSize: Fonts.size.md,
     fontFamily: Fonts.bold,
     color: Colors.primary,
   },
   loadingContainer: {
-    flex: 1,
+    padding: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.regular,
-    color: Colors.textSecondary,
   },
   emptyContainer: {
     alignItems: 'center',

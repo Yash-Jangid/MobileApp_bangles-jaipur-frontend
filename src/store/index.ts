@@ -4,25 +4,25 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import authReducer from './slices/authSlice';
 import appSettingsReducer from './slices/appSettingsSlice';
 import profileReducer from './slices/profileSlice';
-import { productsApi } from '../api/productsApi';
-import { cartApi } from '../api/cartApi';
-import { ordersApi } from '../api/ordersApi';
+import productsReducer from './slices/productsSlice';
+import cartReducer from './slices/cartSlice';
+import ordersReducer from './slices/ordersSlice';
 
 const persistConfig = {
 	key: 'root',
 	storage: AsyncStorage,
 	whitelist: ['auth', 'appSettings'],
-	timeout: 10000, // Increase timeout for slower devices
-	debug: __DEV__, // Enable debug in development
+	timeout: 10000,
+	debug: __DEV__,
 };
 
 const rootReducer = combineReducers({
 	auth: authReducer,
 	appSettings: appSettingsReducer,
 	profile: profileReducer,
-	[productsApi.reducerPath]: productsApi.reducer,
-	[cartApi.reducerPath]: cartApi.reducer,
-	[ordersApi.reducerPath]: ordersApi.reducer,
+	products: productsReducer,
+	cart: cartReducer,
+	orders: ordersReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -34,11 +34,7 @@ export const store = configureStore({
 			serializableCheck: {
 				ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE', 'persist/PAUSE', 'persist/PURGE', 'persist/REGISTER'],
 			},
-		}).concat(
-			productsApi.middleware,
-			cartApi.middleware,
-			ordersApi.middleware
-		),
+		}),
 });
 
 export const persistor = persistStore(store);

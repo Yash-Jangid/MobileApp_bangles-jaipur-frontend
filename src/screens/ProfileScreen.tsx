@@ -33,7 +33,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
             id: 1,
             title: 'My Orders',
             icon: '📦',
-            route: 'OrderHistory',
+            route: 'Orders',
             badge: '3',
         },
         {
@@ -130,7 +130,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Recent Orders</Text>
-                        <TouchableOpacity onPress={() => navigation.navigate('OrderHistory')}>
+                        <TouchableOpacity onPress={() => navigation.navigate('Orders')}>
                             <Text style={styles.seeAllText}>View All</Text>
                         </TouchableOpacity>
                     </View>

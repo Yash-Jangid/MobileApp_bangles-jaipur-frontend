@@ -4,6 +4,7 @@ class StorageService {
   // Auth token management
   async setAuthToken(token: string): Promise<void> {
     try {
+      if (!token) return;
       await AsyncStorage.setItem('auth_token', token);
     } catch (error) {
       console.error('Error saving auth token:', error);
@@ -106,6 +107,57 @@ class StorageService {
       return {};
     }
   }
+
+  // JWT Token management for backend API
+  async setAccessToken(token: string): Promise<void> {
+    try {
+      if (!token) return;
+      await AsyncStorage.setItem('access_token', token);
+    } catch (error) {
+      console.error('Error saving access token:', error);
+    }
+  }
+
+  async getAccessToken(): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem('access_token');
+    } catch (error) {
+      console.error('Error getting access token:', error);
+      return null;
+    }
+  }
+
+  async setRefreshToken(token: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem('refresh_token', token);
+    } catch (error) {
+      console.error('Error saving refresh token:', error);
+    }
+  }
+
+  async getRefreshToken(): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem('refresh_token');
+    } catch (error) {
+      console.error('Error getting refresh token:', error);
+      return null;
+    }
+  }
+
+  async clearAuthData(): Promise<void> {
+    try {
+      await AsyncStorage.multiRemove(['access_token', 'refresh_token', 'auth_token', 'user_data']);
+    } catch (error) {
+      console.error('Error clearing auth data:', error);
+    }
+  }
 }
 
 export const storageService = new StorageService();
+
+// Helper exports for JWT tokens (for use in API client)
+export const saveAccessToken = (token: string) => storageService.setAccessToken(token);
+export const getAccessToken = () => storageService.getAccessToken();
+export const saveRefreshToken = (token: string) => storageService.setRefreshToken(token);
+export const getRefreshToken = () => storageService.getRefreshToken();
+export const clearAuthData = () => storageService.clearAuthData();

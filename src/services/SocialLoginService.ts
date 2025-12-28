@@ -28,28 +28,30 @@ class SocialLoginService {
    */
   async initializeGoogleSignIn() {
     try {
-      let configResponse;
-      try {
-        configResponse = await apiService.getSocialConfig();
-      } catch {
-        configResponse = await apiService.getTestSocialConfig();
-      }
+      // DISABLED: Old backend API call that doesn't exist in new bangles backend
+      // let configResponse;
+      // try {
+      //   configResponse = await apiService.getSocialConfig();
+      // } catch {
+      //   configResponse = await apiService.getTestSocialConfig();
+      // }
+      //
+      // if (configResponse.success && configResponse.data?.google?.enabled) {
+      //   const clientId = configResponse.data.google.client_id;
+      //   if (clientId) {
+      //     GoogleSignin.configure({
+      //       webClientId: clientId,
+      //       iosClientId: clientId,
+      //       offlineAccess: true,
+      //       hostedDomain: '',
+      //       forceCodeForRefreshToken: true,
+      //     });
+      //     this.googleConfigured = true;
+      //     return;
+      //   }
+      // }
 
-      if (configResponse.success && configResponse.data?.google?.enabled) {
-        const clientId = configResponse.data.google.client_id;
-        if (clientId) {
-          GoogleSignin.configure({
-            webClientId: clientId,
-            iosClientId: clientId,
-            offlineAccess: true,
-            hostedDomain: '',
-            forceCodeForRefreshToken: true,
-          });
-          this.googleConfigured = true;
-          return;
-        }
-      }
-
+      // Use static configuration for Google Sign-In
       const staticClientId = '847613477366-r1p21q2peft35ibp8sv3rse5mimau56k.apps.googleusercontent.com';
       GoogleSignin.configure({
         webClientId: staticClientId,

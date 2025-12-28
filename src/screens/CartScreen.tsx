@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,114 +7,70 @@ import {
   TouchableOpacity,
   Image,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import { CustomHeader } from '../components/CustomHeader';
 import { colors } from '../theme/colors';
 import { Fonts } from '../common/fonts';
-
-interface CartItem {
-  id: number;
-  name: string;
-  image: string;
-  price: number;
-  size: string;
-  quantity: number;
-  category: string;
-}
-
-// Dummy cart data
-const MOCK_CART_ITEMS: CartItem[] = [
-  {
-    id: 1,
-    name: 'Royal Kundan Gold Bangles',
-    image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=200&h=200&fit=crop',
-    price: 15999,
-    size: '2.4',
-    quantity: 2,
-    category: 'Gold',
-  },
-  {
-    id: 2,
-    name: 'Diamond Studded Pearl Bangles',
-    image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=200&h=200&fit=crop',
-    price: 28999,
-    size: '2.6',
-    quantity: 1,
-    category: 'Diamond',
-  },
-  {
-    id: 3,
-    name: 'Meenakari Colorful Bangles Set',
-    image: 'https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=200&h=200&fit=crop',
-    price: 3499,
-    size: '2.4',
-    quantity: 4,
-    category: 'Meenakari',
-  },
-  {
-    id: 4,
-    name: 'Glass Bangles Rainbow Set',
-    image: 'https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=200&h=200&fit=crop',
-    price: 1299,
-    size: '2.2',
-    quantity: 2,
-    category: 'Glass',
-  },
-];
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { fetchCart, updateCartItem, removeFromCart } from '../store/slices/cartSlice';
 
 export const CartScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const [cartItems, setCartItems] = useState<CartItem[]>(MOCK_CART_ITEMS);
+  const dispatch = useAppDispatch();
+  const { items, totalAmount, loading, actionLoading } = useAppSelector((state) => state.cart);
 
-  const updateQuantity = (id: number, delta: number) => {
-    setCartItems(items =>
-      items.map(item =>
-        item.id === id
-          ? { ...item, quantity: Math.max(1, item.quantity + delta) }
-          : item
-      )
-    );
+  useEffect(() => {
+    dispatch(fetchCart());
+  }, [dispatch]);
+
+  const handleUpdateQuantity = async (id: number, currentQuantity: number, delta: number) => {
+    const newQuantity = currentQuantity + delta;
+    if (newQuantity < 1) return;
+    dispatch(updateCartItem({ id, payload: { quantity: newQuantity } }));
   };
 
-  const removeItem = (id: number) => {
-    setCartItems(items => items.filter(item => item.id !== id));
-  };
-
-  const calculateSubtotal = () => {
-    return cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const handleRemoveItem = (id: number) => {
+    dispatch(removeFromCart(id));
   };
 
   const handleCheckout = () => {
     navigation.navigate('Checkout');
   };
 
-  const renderCartItem = ({ item }: { item: CartItem }) => (
+  const renderCartItem = ({ item }: { item: any }) => (
     <View style={styles.cartItem}>
-      <Image source={{ uri: item.image }} style={styles.itemImage} />
+      <Image
+        source={{ uri: item.product?.images?.[0]?.imageUrl || 'https://via.placeholder.com/150' }}
+        style={styles.itemImage}
+      />
       <View style={styles.itemDetails}>
-        <Text style={styles.itemCategory}>{item.category}</Text>
-        <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
+        {/* Category not always available in cart item directly, skipping or fetching from product */}
+        <Text style={styles.itemName} numberOfLines={2}>{item.product?.name}</Text>
         <Text style={styles.itemSize}>Size: {item.size}"</Text>
-        <Text style={styles.itemPrice}>₹{item.price}</Text>
+        <Text style={styles.itemPrice}>₹{item.product?.sellingPrice}</Text>
       </View>
       <View style={styles.itemActions}>
         <View style={styles.quantityControls}>
           <TouchableOpacity
             style={styles.quantityButton}
-            onPress={() => updateQuantity(item.id, -1)}
+            onPress={() => handleUpdateQuantity(item.id, item.quantity, -1)}
+            disabled={actionLoading.update}
           >
             <Text style={styles.quantityButtonText}>−</Text>
           </TouchableOpacity>
           <Text style={styles.quantityValue}>{item.quantity}</Text>
           <TouchableOpacity
             style={styles.quantityButton}
-            onPress={() => updateQuantity(item.id, 1)}
+            onPress={() => handleUpdateQuantity(item.id, item.quantity, 1)}
+            disabled={actionLoading.update}
           >
             <Text style={styles.quantityButtonText}>+</Text>
           </TouchableOpacity>
         </View>
         <TouchableOpacity
           style={styles.removeButton}
-          onPress={() => removeItem(item.id)}
+          onPress={() => handleRemoveItem(item.id)}
+          disabled={actionLoading.remove}
         >
           <Text style={styles.removeButtonText}>Remove</Text>
         </TouchableOpacity>
@@ -138,7 +94,18 @@ export const CartScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     </View>
   );
 
-  if (cartItems.length === 0) {
+  if (loading && items.length === 0) {
+    return (
+      <View style={styles.container}>
+        <CustomHeader title="Shopping Cart" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary.main} />
+        </View>
+      </View>
+    );
+  }
+
+  if (items.length === 0) {
     return (
       <View style={styles.container}>
         <CustomHeader title="Shopping Cart" />
@@ -147,8 +114,9 @@ export const CartScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     );
   }
 
-  const subtotal = calculateSubtotal();
-  const shipping = 0; // Free shipping
+  // Use values from backend response
+  const subtotal = totalAmount;
+  const shipping = 0; // Free shipping logic can be enhanced
   const total = subtotal + shipping;
 
   return (
@@ -156,7 +124,7 @@ export const CartScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <CustomHeader title="Shopping Cart" />
 
       <FlatList
-        data={cartItems}
+        data={items}
         renderItem={renderCartItem}
         keyExtractor={item => item.id.toString()}
         contentContainerStyle={styles.listContent}
@@ -165,7 +133,7 @@ export const CartScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             <Text style={styles.summaryTitle}>Order Summary</Text>
 
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Subtotal ({cartItems.length} items)</Text>
+              <Text style={styles.summaryLabel}>Subtotal ({items.length} items)</Text>
               <Text style={styles.summaryValue}>₹{subtotal}</Text>
             </View>
 
@@ -202,6 +170,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.secondary,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   listContent: {
     padding: 16,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,112 +7,128 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import { CustomHeader } from '../components/CustomHeader';
 import { colors } from '../theme/colors';
 import { Fonts } from '../common/fonts';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { fetchProducts, fetchCategories } from '../store/slices/productsSlice';
 
 const { width } = Dimensions.get('window');
 
-interface Category {
-  id: number;
-  name: string;
-  icon: string;
-  count: number;
-  description: string;
-}
+export const CollectionsScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
+  const dispatch = useAppDispatch();
+  const { products, categories, loading } = useAppSelector((state) => state.products);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(route.params?.categoryId || null);
 
-const CATEGORIES: Category[] = [
-  {
-    id: 1,
-    name: 'Gold Bangles',
-    icon: '✨',
-    count: 120,
-    description: 'Traditional gold bangles for every occasion',
-  },
-  {
-    id: 2,
-    name: 'Diamond Bangles',
-    icon: '💎',
-    count: 85,
-    description: 'Elegant diamond-studded bangles',
-  },
-  {
-    id: 3,
-    name: 'Glass Bangles',
-    icon: '🔮',
-    count: 95,
-    description: 'Colorful and vibrant glass bangles',
-  },
-  {
-    id: 4,
-    name: 'Metal Bangles',
-    icon: '⚡',
-    count: 67,
-    description: 'Modern metal and alloy bangles',
-  },
-  {
-    id: 5,
-    name: 'Kundan Bangles',
-    icon: '🌟',
-    count: 45,
-    description: 'Exquisite kundan work bangles',
-  },
-  {
-    id: 6,
-    name: 'Meenakari Bangles',
-    icon: '🎨',
-    count: 52,
-    description: 'Handcrafted meenakari bangles',
-  },
-];
+  useEffect(() => {
+    // Fetch categories if not loaded
+    if (categories.length === 0) {
+      dispatch(fetchCategories());
+    }
+  }, [dispatch, categories.length]);
 
-export const CollectionsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  useEffect(() => {
+    // Fetch products when selected category changes or initially
+    loadProducts();
+  }, [dispatch, selectedCategory]);
 
-  const handleCategoryPress = (categoryId: number) => {
-    setSelectedCategory(categoryId);
-    // Navigate to category products screen
-    navigation.navigate('ProductDetails', { productId: categoryId });
+  const loadProducts = () => {
+    dispatch(fetchProducts({
+      categoryId: selectedCategory || undefined,
+      limit: 20
+    }));
   };
+
+  const handleCategoryPress = (categoryId: number | null) => {
+    setSelectedCategory(categoryId);
+  };
+
+  const navigateToProduct = (slug: string) => {
+    navigation.navigate('ProductDetails', { slug });
+  };
+
+  const renderCategoryFilter = () => (
+    <View style={styles.filterContainer}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+        <TouchableOpacity
+          style={[
+            styles.filterChip,
+            selectedCategory === null && styles.filterChipSelected,
+          ]}
+          onPress={() => handleCategoryPress(null)}
+        >
+          <Text style={[
+            styles.filterText,
+            selectedCategory === null && styles.filterTextSelected,
+          ]}>All</Text>
+        </TouchableOpacity>
+        {categories.map((category) => (
+          <TouchableOpacity
+            key={category.id}
+            style={[
+              styles.filterChip,
+              selectedCategory === category.id && styles.filterChipSelected,
+            ]}
+            onPress={() => handleCategoryPress(category.id)}
+          >
+            <Text style={[
+              styles.filterText,
+              selectedCategory === category.id && styles.filterTextSelected,
+            ]}>{category.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
+  const renderProductItem = ({ item }: { item: any }) => (
+    <TouchableOpacity
+      style={styles.productCard}
+      onPress={() => navigateToProduct(item.slug)}
+    >
+      <Image
+        source={{ uri: item.images[0]?.imageUrl || 'https://via.placeholder.com/150' }}
+        style={styles.productImage}
+      />
+      <View style={styles.productInfo}>
+        <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.productPrice}>₹{item.sellingPrice}</Text>
+        {item.discount > 0 && (
+          <Text style={styles.productOriginalPrice}>₹{item.mrp}</Text>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
-      <CustomHeader title="Collections" />
+      <CustomHeader title="Collections" showBackButton onBackPress={() => navigation.goBack()} />
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerSection}>
-          <Text style={styles.title}>Shop by Category</Text>
-          <Text style={styles.subtitle}>
-            Explore our exquisite collection of bangles
-          </Text>
+      {renderCategoryFilter()}
+
+      {loading.products ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary.main} />
         </View>
-
-        <View style={styles.categoriesGrid}>
-          {CATEGORIES.map((category) => (
-            <TouchableOpacity
-              key={category.id}
-              style={[
-                styles.categoryCard,
-                selectedCategory === category.id && styles.categoryCardSelected,
-              ]}
-              onPress={() => handleCategoryPress(category.id)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.iconContainer}>
-                <Text style={styles.categoryIcon}>{category.icon}</Text>
-              </View>
-              <Text style={styles.categoryName}>{category.name}</Text>
-              <Text style={styles.categoryDescription}>{category.description}</Text>
-              <View style={styles.countBadge}>
-                <Text style={styles.countText}>{category.count} items</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
+      ) : (
+        <FlatList
+          data={products}
+          renderItem={renderProductItem}
+          keyExtractor={(item) => item.id.toString()}
+          numColumns={2}
+          contentContainerStyle={styles.productList}
+          showsVerticalScrollIndicator={false}
+          columnWrapperStyle={styles.columnWrapper}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text>No products found in this category.</Text>
+            </View>
+          }
+        />
+      )}
     </View>
   );
 };
@@ -122,86 +138,88 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background.primary,
   },
-  scrollView: {
-    flex: 1,
+  filterContainer: {
+    paddingVertical: 12,
+    backgroundColor: colors.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
   },
-  headerSection: {
-    padding: 20,
-    paddingBottom: 10,
+  filterScroll: {
+    paddingHorizontal: 16,
+    gap: 8,
   },
-  title: {
-    fontSize: 28,
-    fontFamily: Fonts.bold,
-    color: colors.text.primary,
-    marginBottom: 8,
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.neutral.gray100,
+    borderWidth: 1,
+    borderColor: colors.border.medium,
   },
-  subtitle: {
-    fontSize: 16,
-    fontFamily: Fonts.regular,
+  filterChipSelected: {
+    backgroundColor: colors.primary.main,
+    borderColor: colors.primary.main,
+  },
+  filterText: {
+    fontSize: 14,
+    fontFamily: Fonts.medium,
     color: colors.text.secondary,
   },
-  categoriesGrid: {
-    padding: 12,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  filterTextSelected: {
+    color: colors.neutral.white,
+  },
+  productList: {
+    padding: 16,
+  },
+  columnWrapper: {
     justifyContent: 'space-between',
   },
-  categoryCard: {
+  productCard: {
     width: (width - 40) / 2,
     backgroundColor: colors.neutral.white,
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 12,
     marginBottom: 16,
-    elevation: 3,
-    shadowColor: colors.neutral.black,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: colors.text.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    shadowRadius: 4,
   },
-  categoryCardSelected: {
-    borderColor: colors.primary.main,
-    backgroundColor: colors.primary.light,
+  productImage: {
+    width: '100%',
+    height: 160,
+    resizeMode: 'cover',
   },
-  iconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.primary.light,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
+  productInfo: {
+    padding: 12,
   },
-  categoryIcon: {
-    fontSize: 32,
-  },
-  categoryName: {
-    fontSize: 16,
-    fontFamily: Fonts.semiBold,
+  productName: {
+    fontSize: 14,
+    fontFamily: Fonts.medium,
     color: colors.text.primary,
-    marginBottom: 6,
+    marginBottom: 4,
   },
-  categoryDescription: {
+  productPrice: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    color: colors.primary.main,
+  },
+  productOriginalPrice: {
     fontSize: 12,
     fontFamily: Fonts.regular,
     color: colors.text.secondary,
-    marginBottom: 12,
-    lineHeight: 16,
+    textDecorationLine: 'line-through',
   },
-  countBadge: {
-    backgroundColor: colors.primary.main,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  countText: {
-    fontSize: 11,
-    fontFamily: Fonts.medium,
-    color: colors.neutral.white,
-  },
-  bottomSpacing: {
-    height: 20,
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 50,
   },
 });

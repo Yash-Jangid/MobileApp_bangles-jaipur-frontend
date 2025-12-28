@@ -36,12 +36,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
 
-  // Navigate to main app when authenticated
-  useEffect(() => {
-    if (isAuthenticated && token) {
-      navigation.replace('Main');
-    }
-  }, [isAuthenticated, token, navigation]);
 
   const validateForm = () => {
     if (!email.trim()) {
@@ -72,13 +66,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
     try {
       console.log('🔵 [LoginScreen] Starting login process...');
-      
+
       // Dispatch the login action
       const result = await dispatch(loginUser({ email, password }));
-      
+
       if (loginUser.fulfilled.match(result)) {
         console.log('✅ [LoginScreen] Login successful, user authenticated');
-        // Navigation will happen automatically via useEffect when isAuthenticated becomes true
+        // Explicitly navigate to Main and reset stack to prevent going back to Login
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Main' }],
+        });
       } else if (loginUser.rejected.match(result)) {
         console.error('❌ [LoginScreen] Login failed:', result.payload);
         // Error is already handled by Redux and will be shown to user

@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import apiService from '../../services/ApiService';
-import { storageService } from '../../utils/storage';
+import { storageService, saveAccessToken, saveRefreshToken, clearAuthData } from '../../utils/storage';
+import * as authApi from '../../api/authApi';
 export interface User {
 	name: string;
 	email: string;
@@ -11,7 +12,9 @@ export interface User {
 
 export interface AuthState {
 	user: User | null;
-	token: string | null;
+	token: string | null; // For backward compatibility with old API
+	accessToken: string | null; // New backend JWT access token
+	refreshToken: string | null; // New backend refresh token
 	isAuthenticated: boolean;
 	isGuestMode: boolean;
 	loading: boolean;
@@ -21,40 +24,109 @@ export interface AuthState {
 const initialState: AuthState = {
 	user: null,
 	token: null,
+	accessToken: null,
+	refreshToken: null,
 	isAuthenticated: false,
 	isGuestMode: false,
 	loading: false,
 	error: null,
 };
 
+// Register new user with backend API
+export const registerUser = createAsyncThunk(
+	'auth/register',
+	async (data: { firstName: string; lastName: string; email: string; password: string }, { rejectWithValue }) => {
+		try {
+			const response = await authApi.registerUser(data);
+			console.log('Register response from backend:', response);
+
+			// Backend returns: { data: { accessToken, refreshToken, user } }
+			const { accessToken, refreshToken, user } = response.data;
+
+			// Save tokens
+			await saveAccessToken(accessToken);
+			await saveRefreshToken(refreshToken);
+			await storageService.setUserData(user);
+
+			return {
+				user: {
+					id: user.id,
+					name: `${user.firstName} ${user.lastName}`,
+					email: user.email,
+					role: user.role,
+				},
+				accessToken,
+				refreshToken,
+			};
+		} catch (error: any) {
+			return rejectWithValue(error.message || 'Registration failed');
+		}
+	}
+);
+
+// Login with new backend API
 export const loginUser = createAsyncThunk(
 	'auth/login',
 	async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
 		try {
-			const response = await apiService.login(email, password);
-			console.log('Login response from API:', response);
+			// Try new backend API first
+			const response = await authApi.loginUser({ email, password });
+			console.log('Login response from backend:', response);
 
-			if (response.success) {
-				// Redux Persist will handle storing the state, no need for manual AsyncStorage calls
-				console.log('User data from response:', response.data);
-				console.log('Token from response:', response.data?.token);
-				return { user: response.data, token: response.data?.token };
+			// Backend returns: { data: { accessToken, refreshToken, user } }
+			const { accessToken, refreshToken, user } = response.data;
+
+			// Save tokens
+			await saveAccessToken(accessToken);
+			await saveRefreshToken(refreshToken);
+			await storageService.setUserData(user);
+
+			return {
+				user: {
+					id: user.id,
+					name: `${user.firstName} ${user.lastName}`,
+					email: user.email,
+					role: user.role,
+				},
+				accessToken,
+				refreshToken,
+			};
+		} catch (error: any) {
+			// Fallback to old API if new backend fails
+			try {
+				const oldResponse = await apiService.login(email, password);
+				if (oldResponse.success) {
+					return {
+						user: oldResponse.data,
+						token: oldResponse.data?.token,
+						accessToken: null,
+						refreshToken: null,
+					};
+				}
+			} catch (fallbackError) {
+				console.log('Old API also failed');
 			}
-			return rejectWithValue(response.message || 'Login failed');
-		} catch (error) {
-			return rejectWithValue('Network error. Please check your connection.');
+			return rejectWithValue(error.message || 'Login failed');
 		}
 	}
 );
 
 export const logoutUser = createAsyncThunk('auth/logout', async (_, { rejectWithValue }) => {
 	try {
-		// Redux Persist will handle clearing the state, but we also clear AsyncStorage for cleanup
+		// Call backend logout endpoint
+		await authApi.logoutUser();
+
+		// Clear all stored data
+		await clearAuthData();
 		await storageService.removeAuthToken();
 		await storageService.removeUserData();
 		return true;
 	} catch (error) {
-		return rejectWithValue('Logout failed');
+		// Even if backend call fails, clear local data
+		await clearAuthData();
+		await storageService.removeAuthToken();
+		await storageService.removeUserData();
+		return true;
 	}
 });
 
@@ -109,6 +181,26 @@ const authSlice = createSlice({
 		},
 	},
 	extraReducers: (builder) => {
+		// Register cases
+		builder
+			.addCase(registerUser.pending, (state) => {
+				state.loading = true;
+				state.error = null;
+			})
+			.addCase(registerUser.fulfilled, (state, action) => {
+				state.loading = false;
+				state.isAuthenticated = true;
+				state.user = action.payload.user;
+				state.accessToken = action.payload.accessToken;
+				state.refreshToken = action.payload.refreshToken;
+				console.log('Registration successful:', action.payload.user?.name);
+			})
+			.addCase(registerUser.rejected, (state, action) => {
+				state.loading = false;
+				state.error = action.payload as string;
+			});
+
+		// Login cases
 		builder
 			.addCase(loginUser.pending, (state) => {
 				state.loading = true;
@@ -118,9 +210,10 @@ const authSlice = createSlice({
 				state.loading = false;
 				state.isAuthenticated = true;
 				state.user = action.payload.user;
-				state.token = action.payload.token;
+				state.token = action.payload.token || null;
+				state.accessToken = action.payload.accessToken || null;
+				state.refreshToken = action.payload.refreshToken || null;
 				console.log('Login successful, user authenticated:', action.payload.user?.name);
-				console.log('Token stored:', !!action.payload.token);
 			})
 			.addCase(loginUser.rejected, (state, action) => {
 				state.loading = false;
@@ -136,6 +229,8 @@ const authSlice = createSlice({
 				state.isAuthenticated = false;
 				state.user = null;
 				state.token = null;
+				state.accessToken = null;
+				state.refreshToken = null;
 				state.error = null;
 			})
 			.addCase(logoutUser.rejected, (state, action) => {

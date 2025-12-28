@@ -7,14 +7,22 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { CustomHeader } from '../components/CustomHeader';
 import { colors } from '../theme/colors';
 import { Fonts } from '../common/fonts';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { createOrder } from '../store/slices/ordersSlice';
+import { clearCart } from '../store/slices/cartSlice';
 
 type PaymentMethod = 'COD' | 'PhonePe' | 'GPay';
 
 export const CheckoutScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const dispatch = useAppDispatch();
+  const { totalAmount, items } = useAppSelector((state) => state.cart);
+  const { loading } = useAppSelector((state) => state.orders);
+
   const [address, setAddress] = useState({
     fullName: '',
     phone: '',
@@ -27,12 +35,7 @@ export const CheckoutScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
 
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>('COD');
 
-  // Mock order data (matches cart items: 15999*2 + 28999*1 + 3499*4 + 1299*2)
-  const orderSubtotal = 62393;
-  const shipping = 0;
-  const total = orderSubtotal + shipping;
-
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     // Validate address
     if (!address.fullName || !address.phone || !address.addressLine1 ||
       !address.city || !address.state || !address.pincode) {
@@ -46,12 +49,36 @@ export const CheckoutScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
       return;
     }
 
-    // Place order logic
-    Alert.alert(
-      'Order Placed!',
-      `Your order of ₹${total} has been placed successfully with ${selectedPayment}`,
-      [{ text: 'OK', onPress: () => navigation.navigate('Home') }]
-    );
+    const payload = {
+      items: items.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        size: item.size
+      })),
+      shippingAddress: {
+        street: address.addressLine1 + (address.addressLine2 ? ', ' + address.addressLine2 : ''),
+        city: address.city,
+        state: address.state,
+        zipCode: address.pincode,
+        country: 'India', // Hardcoded for now
+        phone: address.phone
+      },
+      paymentMethod: selectedPayment
+    };
+
+    try {
+      await dispatch(createOrder(payload)).unwrap();
+      // Clear cart after successful order
+      dispatch(clearCart());
+
+      Alert.alert(
+        'Order Placed!',
+        `Your order of ₹${totalAmount} has been placed successfully with ${selectedPayment}`,
+        [{ text: 'OK', onPress: () => navigation.navigate('Home') }]
+      );
+    } catch (error) {
+      Alert.alert('Order Failed', typeof error === 'string' ? error : 'Failed to place order. Please try again.');
+    }
   };
 
   return (
@@ -185,7 +212,7 @@ export const CheckoutScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
 
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Subtotal</Text>
-            <Text style={styles.summaryValue}>₹{orderSubtotal}</Text>
+            <Text style={styles.summaryValue}>₹{totalAmount}</Text>
           </View>
 
           <View style={styles.summaryRow}>
@@ -197,7 +224,7 @@ export const CheckoutScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
 
           <View style={styles.summaryRow}>
             <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>₹{total}</Text>
+            <Text style={styles.totalValue}>₹{totalAmount}</Text>
           </View>
         </View>
 
@@ -209,10 +236,15 @@ export const CheckoutScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
         <TouchableOpacity
           style={styles.placeOrderButton}
           onPress={handlePlaceOrder}
+          disabled={loading.create}
         >
-          <Text style={styles.placeOrderButtonText}>
-            Place Order (₹{total})
-          </Text>
+          {loading.create ? (
+            <ActivityIndicator size="small" color={colors.neutral.white} />
+          ) : (
+            <Text style={styles.placeOrderButtonText}>
+              Place Order (₹{totalAmount})
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>

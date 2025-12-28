@@ -6,10 +6,11 @@
         <domain includeSubdomains="true">10.16.106.243:8000</domain>
         <domain includeSubdomains="true">https://linen-otter-330076.hostingersite.com/</domain>
         <domain includeSubdomains="true">linen-otter-330076.hostingersite.com</domain>
+        <domain includeSubdomains="true">localhost:3000</domain>
     </domain-config>
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
-            <certificates src="system"/>
+            <certificates src="system" />
         </trust-anchors>
     </base-config>
 </network-security-config>

@@ -18,6 +18,8 @@ import { CartScreen } from '../screens/CartScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { ProductDetailsScreen } from '../screens/ProductDetailsScreen';
 import { CheckoutScreen } from '../screens/CheckoutScreen';
+import { OrdersScreen } from '../screens/OrdersScreen';
+import { OrderDetailsScreen } from '../screens/OrderDetailsScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import { WebViewScreen } from '../components/WebViewScreen';
 
@@ -87,7 +89,7 @@ const MainTabNavigator = () => {
 };
 
 export const AppNavigator = () => {
-  const { isAuthenticated, token, isGuestMode } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, token, accessToken, isGuestMode } = useAppSelector((state) => state.auth);
 
   return (
     <NavigationContainer
@@ -98,7 +100,7 @@ export const AppNavigator = () => {
           headerShown: false,
           gestureEnabled: true,
         }}
-        initialRouteName={(isAuthenticated && token) || isGuestMode ? "Main" : "Login"}
+        initialRouteName={(isAuthenticated && (token || accessToken)) || isGuestMode ? "Main" : "Login"}
       >
         {/* Auth Screens */}
         <Stack.Screen name="Login" component={LoginScreen} />
@@ -110,6 +112,8 @@ export const AppNavigator = () => {
         {/* E-Commerce Screens */}
         <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} />
         <Stack.Screen name="Checkout" component={CheckoutScreen} />
+        <Stack.Screen name="Orders" component={OrdersScreen} />
+        <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
 
         {/* Profile & Utility Screens */}
         <Stack.Screen name="Notifications" component={NotificationsScreen} />

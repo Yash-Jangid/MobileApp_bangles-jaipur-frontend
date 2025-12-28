@@ -17,8 +17,8 @@ import { Colors } from '../common/colors';
 import { Fonts } from '../common/fonts';
 import apiService from '../services/ApiService';
 import { storageService } from '../utils/storage';
-import { useAppDispatch } from '../store/hooks';
-import { enableGuestMode } from '../store/slices/authSlice';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { enableGuestMode, registerUser, clearError } from '../store/slices/authSlice';
 import socialLoginService from '../services/SocialLoginService';
 import { GoogleIcon } from '../components/icons/GoogleIcon';
 
@@ -32,14 +32,15 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
   onSignUpSuccess,
 }) => {
   const dispatch = useAppDispatch();
+  const { loading, isAuthenticated, error } = useAppSelector((state) => state.auth);
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
   const handleGuestMode = () => {
     dispatch(enableGuestMode());
     navigation.navigate('Main');
@@ -92,53 +93,55 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
   const handleSignUp = async () => {
     if (!validateForm()) return;
 
-    setLoading(true);
-
     try {
-      const response = await apiService.register({
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        password: password,
-        password_confirmation: confirmPassword,
-      });
+      console.log('🔵 [SignUpScreen] Starting registration process...');
 
-      if (response.success) {
-        Alert.alert('Success', response.message || 'Account created successfully! Your account has been created.', [
-          {
-            text: 'OK',
-            onPress: async () => {
-              // Save user data if available
-              if (response.data?.user) {
-                await storageService.setUserData(response.data.user);
-              }
-              
-              if (onSignUpSuccess && response.data?.user) {
-                onSignUpSuccess(response.data.user);
-              } else {
-                // If no onSignUpSuccess callback, navigate back to login
-                setTimeout(() => {
-                  navigation.goBack();
-                }, 0);
-              }
+      // Split name into first and last name
+      const nameParts = name.trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || nameParts[0]; // Use first name as last if only one name
+
+      // Dispatch the register action
+      const result = await dispatch(registerUser({
+        firstName,
+        lastName,
+        email: email.trim().toLowerCase(),
+        password: password.trim(),
+      }));
+
+      if (registerUser.fulfilled.match(result)) {
+        console.log('✅ [SignUpScreen] Registration successful');
+        Alert.alert(
+          'Success',
+          'Account created successfully! You are now logged in.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                if (onSignUpSuccess && result.payload.user) {
+                  onSignUpSuccess(result.payload.user);
+                } else {
+                  // Navigate to main app
+                  navigation.replace('Main');
+                }
+              },
             },
-          },
-        ]);
-      } else {
-        console.log(response);
-        Alert.alert('Sign Up Failed', response.message || 'Failed to create account. Please try again.');
+          ]
+        );
+      } else if (registerUser.rejected.match(result)) {
+        console.error('❌ [SignUpScreen] Registration failed:', result.payload);
+        Alert.alert('Registration Failed', result.payload as string || 'Failed to create account');
       }
     } catch (error) {
-      console.error('Sign up error:', error);
-      Alert.alert('Error', 'Network error. Please check your connection and try again.');
-    } finally {
-      setLoading(false);
+      console.error('❌ [SignUpScreen] Registration exception:', error);
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
     }
   };
 
   const handleGoogleSignUp = async () => {
     try {
       const result = await socialLoginService.signInWithGoogle();
-      
+
       if (result.success && result.token) {
         if (result.isNewUser) {
           Alert.alert('Welcome!', 'Your account has been created successfully with Google!', [
@@ -179,7 +182,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
   const handleFacebookSignUp = async () => {
     try {
       const result = await socialLoginService.signInWithFacebook();
-      
+
       if (result.success && result.token) {
         if (result.isNewUser) {
           Alert.alert('Welcome!', 'Your account has been created successfully with Facebook!', [
@@ -223,135 +226,135 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <LinearGradient
-          colors={[Colors.gradientStart, Colors.gradientEnd]}
-          style={Platform.OS === 'ios' ? styles.headerSectionIOS : styles.headerSectionAndroid}
-        >
-          {/* Guest Mode Button - Top Right */}
-          <TouchableOpacity
-            style={styles.headerGuestButton}
-            onPress={handleGuestMode}
-            disabled={loading}
+        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+          <LinearGradient
+            colors={[Colors.gradientStart, Colors.gradientEnd]}
+            style={Platform.OS === 'ios' ? styles.headerSectionIOS : styles.headerSectionAndroid}
           >
-            <Text style={styles.headerGuestButtonText}>Guest</Text>
-          </TouchableOpacity>
-
-          {/* Main Header Content */}
-          <View style={styles.headerContent}>
-            <Text style={styles.logoText}>Edurise</Text>
-            <Text style={styles.taglineText}>Learn. Grow. Succeed.</Text>
-          </View>
-        </LinearGradient>
-
-        <View style={styles.formSection}>
-          <Text style={styles.welcomeText}>Create Account</Text>
-          <Text style={styles.subtitleText}>Join us and start your learning journey today</Text>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Full Name</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Enter your full name"
-              placeholderTextColor={Colors.textMuted}
-              value={name}
-              onChangeText={setName}
-              autoCapitalize="words"
-              autoComplete="name"
-              editable={!loading}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Email Address</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Enter your email"
-              placeholderTextColor={Colors.textMuted}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              editable={!loading}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Password</Text>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={[styles.textInput, styles.passwordInput]}
-                placeholder="Enter your password"
-                placeholderTextColor={Colors.textMuted}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoComplete="password-new"
-                editable={!loading}
-              />
-              <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() => setShowPassword(!showPassword)}
-                disabled={loading}
-              >
-                <Text style={styles.eyeButtonText}>{showPassword ? '🙈' : '👁️'}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Confirm Password</Text>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={[styles.textInput, styles.passwordInput]}
-                placeholder="Confirm your password"
-                placeholderTextColor={Colors.textMuted}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={!showConfirmPassword}
-                autoComplete="password-new"
-                editable={!loading}
-              />
-              <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                disabled={loading}
-              >
-                <Text style={styles.eyeButtonText}>{showConfirmPassword ? '🙈' : '👁️'}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.signUpButton, loading && styles.disabledButton]}
-            onPress={handleSignUp}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color={Colors.textLight} size="small" />
-            ) : (
-              <Text style={styles.signUpButtonText}>Create Account</Text>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.dividerContainer}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or continue with</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <View style={styles.socialButtonsContainer}>
+            {/* Guest Mode Button - Top Right */}
             <TouchableOpacity
-              style={styles.socialButton}
-              onPress={handleGoogleSignUp}
+              style={styles.headerGuestButton}
+              onPress={handleGuestMode}
               disabled={loading}
             >
-              <GoogleIcon size={20} />
-              <Text style={styles.socialButtonText}>Google</Text>
+              <Text style={styles.headerGuestButtonText}>Guest</Text>
             </TouchableOpacity>
 
-            {/* <TouchableOpacity
+            {/* Main Header Content */}
+            <View style={styles.headerContent}>
+              <Text style={styles.logoText}>Edurise</Text>
+              <Text style={styles.taglineText}>Learn. Grow. Succeed.</Text>
+            </View>
+          </LinearGradient>
+
+          <View style={styles.formSection}>
+            <Text style={styles.welcomeText}>Create Account</Text>
+            <Text style={styles.subtitleText}>Join us and start your learning journey today</Text>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Full Name</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Enter your full name"
+                placeholderTextColor={Colors.textMuted}
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
+                autoComplete="name"
+                editable={!loading}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Email Address</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Enter your email"
+                placeholderTextColor={Colors.textMuted}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                editable={!loading}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Password</Text>
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={[styles.textInput, styles.passwordInput]}
+                  placeholder="Enter your password"
+                  placeholderTextColor={Colors.textMuted}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoComplete="password-new"
+                  editable={!loading}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                  disabled={loading}
+                >
+                  <Text style={styles.eyeButtonText}>{showPassword ? '🙈' : '👁️'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Confirm Password</Text>
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={[styles.textInput, styles.passwordInput]}
+                  placeholder="Confirm your password"
+                  placeholderTextColor={Colors.textMuted}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                  autoComplete="password-new"
+                  editable={!loading}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  disabled={loading}
+                >
+                  <Text style={styles.eyeButtonText}>{showConfirmPassword ? '🙈' : '👁️'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.signUpButton, loading && styles.disabledButton]}
+              onPress={handleSignUp}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={Colors.textLight} size="small" />
+              ) : (
+                <Text style={styles.signUpButtonText}>Create Account</Text>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or continue with</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <View style={styles.socialButtonsContainer}>
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={handleGoogleSignUp}
+                disabled={loading}
+              >
+                <GoogleIcon size={20} />
+                <Text style={styles.socialButtonText}>Google</Text>
+              </TouchableOpacity>
+
+              {/* <TouchableOpacity
               style={styles.socialButton}
               onPress={handleFacebookSignUp}
               disabled={loading}
@@ -359,17 +362,17 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
               <Text style={styles.socialButtonIcon}>📘</Text>
               <Text style={styles.socialButtonText}>Facebook</Text>
             </TouchableOpacity> */}
-          </View>
+            </View>
 
-          <View style={styles.loginContainer}>
-            <Text style={styles.loginText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.loginLink}>Sign In</Text>
-            </TouchableOpacity>
+            <View style={styles.loginContainer}>
+              <Text style={styles.loginText}>Already have an account? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.loginLink}>Sign In</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -568,5 +571,32 @@ const styles = StyleSheet.create({
     fontSize: Fonts.size.sm,
     fontFamily: Fonts.semiBold,
     color: Colors.primary,
+  },
+  errorContainer: {
+    backgroundColor: '#ffebee',
+    borderColor: '#f44336',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#d32f2f',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  retryButton: {
+    backgroundColor: '#f44336',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignSelf: 'center',
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
