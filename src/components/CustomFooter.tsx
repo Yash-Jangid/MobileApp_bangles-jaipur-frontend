@@ -26,79 +26,95 @@ export const CustomFooter: React.FC<CustomFooterProps> = ({
   activeItem,
 }) => {
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <View style={styles.footer}>
-        {items.map((item) => (
-          <TouchableOpacity
-            key={item.id}
-            style={styles.footerItem}
-            onPress={item.onPress}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={[
-                styles.footerIcon,
-                activeItem === item.id && styles.activeIcon,
-              ]}
+        {items.map((item) => {
+          const isActive = activeItem === item.id;
+          return (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.footerItem}
+              onPress={item.onPress}
+              activeOpacity={0.7}
             >
-              {item.icon}
-            </Text>
-            <Text
-              style={[
-                styles.footerLabel,
-                activeItem === item.id && styles.activeLabel,
-              ]}
-            >
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <View style={[styles.iconContainer, isActive && styles.activeIconContainer]}>
+                <Text
+                  style={[
+                    styles.footerIcon,
+                    isActive && styles.activeIcon,
+                  ]}
+                >
+                  {item.icon}
+                </Text>
+              </View>
+              <Text
+                style={[
+                  styles.footerLabel,
+                  isActive && styles.activeLabel,
+                ]}
+              >
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.primary,
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    elevation: 8,
-    shadowColor: Colors.textPrimary,
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    borderTopColor: 'rgba(0,0,0,0.08)',
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: Colors.background,
+    backgroundColor: '#FFFFFF',
   },
   footerItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 4,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  activeIconContainer: {
+    backgroundColor: '#F5F0E8', // Light gold background
   },
   footerIcon: {
-    fontSize: 20,
-    color: Colors.textMuted,
-    marginBottom: 4,
+    fontSize: 22,
+    color: '#666',
   },
   activeIcon: {
-    color: Colors.primary,
+    color: '#D4AF37', // Gold color
   },
   footerLabel: {
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted,
+    fontSize: 10,
+    fontFamily: Fonts.medium,
+    color: '#666',
     textAlign: 'center',
+    letterSpacing: 0.2,
   },
   activeLabel: {
-    color: Colors.primary,
-    fontFamily: Fonts.medium,
+    color: '#D4AF37',
+    fontFamily: Fonts.semiBold,
   },
 });

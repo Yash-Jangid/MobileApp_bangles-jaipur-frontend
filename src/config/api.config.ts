@@ -22,6 +22,7 @@ export const API_CONFIG = {
             PROFILE: '/users/profile',
             UPDATE_PROFILE: '/users/profile',
             ADDRESSES: '/users/addresses',
+            BY_ID: (id: number) => `/users/${id}`,
         },
 
         // Products

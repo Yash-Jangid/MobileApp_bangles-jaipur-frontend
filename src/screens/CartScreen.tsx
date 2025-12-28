@@ -94,7 +94,7 @@ export const CartScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     </View>
   );
 
-  if (loading && items.length === 0) {
+  if (loading && (!items || items.length === 0)) {
     return (
       <View style={styles.container}>
         <CustomHeader title="Shopping Cart" />
@@ -105,7 +105,7 @@ export const CartScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     );
   }
 
-  if (items.length === 0) {
+  if (!items || items.length === 0) {
     return (
       <View style={styles.container}>
         <CustomHeader title="Shopping Cart" />

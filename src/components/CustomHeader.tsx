@@ -5,12 +5,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
-  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../common/colors';
 import { Fonts } from '../common/fonts';
-import { ArrowBackIcon } from './icons/VideoControlIcons';
 
 interface CustomHeaderProps {
   title: string;
@@ -25,11 +23,11 @@ export const CustomHeader: React.FC<CustomHeaderProps> = ({
   showBackButton = false,
   onBackPress,
   rightComponent,
-  backgroundColor = Colors.primary,
+  backgroundColor = '#FFFFFF',
 }) => {
   return (
     <>
-      <SafeAreaView 
+      <SafeAreaView
         style={[styles.container, { backgroundColor }]}
         edges={['top']}
       >
@@ -41,18 +39,17 @@ export const CustomHeader: React.FC<CustomHeaderProps> = ({
                 onPress={onBackPress}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <ArrowBackIcon size={24} color={Colors.textLight} />
-                
+                <Text style={styles.backButtonText}>‹</Text>
               </TouchableOpacity>
             )}
           </View>
-          
+
           <View style={styles.centerSection}>
             <Text style={styles.title} numberOfLines={1}>
               {title}
             </Text>
           </View>
-          
+
           <View style={styles.rightSection}>
             {rightComponent}
           </View>
@@ -64,11 +61,8 @@ export const CustomHeader: React.FC<CustomHeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    elevation: 4,
-    shadowColor: Colors.textPrimary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.08)',
   },
   header: {
     flexDirection: 'row',
@@ -94,16 +88,19 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
+    marginLeft: -8,
   },
   backButtonText: {
-    fontSize: 16,
-    color: Colors.textLight,
-    fontFamily: Fonts.medium,
+    fontSize: 32,
+    fontFamily: Fonts.regular,
+    color: '#1a1a1a',
+    lineHeight: 32,
   },
   title: {
-    fontSize: Fonts.size.lg,
+    fontSize: 17,
     fontFamily: Fonts.semiBold,
-    color: Colors.textLight,
+    color: '#1a1a1a',
     textAlign: 'center',
+    letterSpacing: 0.2,
   },
 });
