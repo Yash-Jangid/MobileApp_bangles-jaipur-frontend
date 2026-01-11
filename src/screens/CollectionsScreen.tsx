@@ -11,29 +11,30 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { CustomHeader } from '../components/CustomHeader';
-import { colors } from '../theme/colors';
 import { Fonts } from '../common/fonts';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchProducts, fetchCategories } from '../store/slices/productsSlice';
 import { useTheme } from '../theme/ThemeContext';
+import { Heart } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
+const COLUMN_COUNT = 2;
+const SPACING = 12;
+const CARD_WIDTH = (width - ((COLUMN_COUNT + 1) * SPACING)) / COLUMN_COUNT;
 
 export const CollectionsScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const dispatch = useAppDispatch();
   const { products, categories, loading } = useAppSelector((state) => state.products);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(route.params?.categoryId || null);
 
   useEffect(() => {
-    // Fetch categories if not loaded
     if (categories.length === 0) {
       dispatch(fetchCategories());
     }
   }, [dispatch, categories.length]);
 
   useEffect(() => {
-    // Fetch products when selected category changes or initially
     loadProducts();
   }, [dispatch, selectedCategory]);
 
@@ -53,20 +54,19 @@ export const CollectionsScreen: React.FC<{ navigation: any; route: any }> = ({ n
   };
 
   const renderCategoryFilter = () => (
-    <View style={[styles.filterContainer, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.filterContainer, { backgroundColor: theme.colors.background, borderBottomColor: theme.colors.border }]}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
         <TouchableOpacity
           style={[
             styles.filterChip,
-            selectedCategory === null && styles.filterChipSelected,
-            { backgroundColor: theme.colors.background }
+            selectedCategory === null && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+            selectedCategory !== null && { backgroundColor: theme.colors.card, borderColor: theme.colors.border }
           ]}
           onPress={() => handleCategoryPress(null)}
         >
           <Text style={[
             styles.filterText,
-            selectedCategory === null && styles.filterTextSelected,
-            { color: theme.colors.text }
+            { color: selectedCategory === null ? theme.colors.background : theme.colors.text }
           ]}>All</Text>
         </TouchableOpacity>
         {categories.map((category) => (
@@ -74,14 +74,14 @@ export const CollectionsScreen: React.FC<{ navigation: any; route: any }> = ({ n
             key={category.id}
             style={[
               styles.filterChip,
-              selectedCategory === category.id && styles.filterChipSelected,
-              { backgroundColor: theme.colors.background }
+              selectedCategory === category.id && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+              selectedCategory !== category.id && { backgroundColor: theme.colors.card, borderColor: theme.colors.border }
             ]}
             onPress={() => handleCategoryPress(category.id)}
           >
             <Text style={[
               styles.filterText,
-              selectedCategory === category.id && styles.filterTextSelected,
+              { color: selectedCategory === category.id ? theme.colors.background : theme.colors.text }
             ]}>{category.name}</Text>
           </TouchableOpacity>
         ))}
@@ -91,32 +91,60 @@ export const CollectionsScreen: React.FC<{ navigation: any; route: any }> = ({ n
 
   const renderProductItem = ({ item }: { item: any }) => (
     <TouchableOpacity
-      style={styles.productCard}
+      style={[styles.productCard, { backgroundColor: theme.colors.card }]}
       onPress={() => navigateToProduct(item.slug)}
+      activeOpacity={0.9}
     >
-      <Image
-        source={{ uri: item.images[0]?.imageUrl || 'https://via.placeholder.com/150' }}
-        style={styles.productImage}
-      />
+      <View style={styles.imageContainer}>
+        <Image
+          source={{ uri: item.images[0]?.imageUrl || 'https://via.placeholder.com/300x400' }}
+          style={styles.productImage}
+        />
+        <TouchableOpacity style={styles.wishlistButton}>
+          <Heart size={18} color={theme.colors.text} />
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.productInfo}>
-        <Text style={[styles.productName, { color: theme.colors.text }]} numberOfLines={1}>{item.name}</Text>
-        <Text style={[styles.productPrice, { color: theme.colors.text }]} >₹{item.sellingPrice}</Text>
-        {parseFloat(item.discountPercentage) > 0 && (
-          <Text style={[styles.productOriginalPrice, { color: theme.colors.text }]} >₹{item.mrp}</Text>
-        )}
+        <Text style={[styles.productName, { color: theme.colors.text }]} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={[styles.productDescription, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+          {item.specifications?.material || 'Premium Bangle'}
+        </Text>
+
+        <View style={styles.priceRow}>
+          <Text style={[styles.productPrice, { color: theme.colors.text }]}>
+            ₹{item.sellingPrice}
+          </Text>
+          {parseFloat(item.discountPercentage) > 0 && (
+            <>
+              <Text style={[styles.productMRP, { color: theme.colors.textSecondary }]}>
+                ₹{item.mrp}
+              </Text>
+              <Text style={styles.discountText}>
+                {Math.round(parseFloat(item.discountPercentage))}% OFF
+              </Text>
+            </>
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <CustomHeader title="Collections" showBackButton onBackPress={() => navigation.goBack()} />
+      <CustomHeader
+        title="Collections"
+        showBackButton
+        onBackPress={() => navigation.goBack()}
+      />
 
       {renderCategoryFilter()}
 
       {loading.products ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary.main} />
+          <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
       ) : (
         <FlatList
@@ -125,11 +153,16 @@ export const CollectionsScreen: React.FC<{ navigation: any; route: any }> = ({ n
           keyExtractor={(item) => item.id.toString()}
           numColumns={2}
           contentContainerStyle={styles.productList}
-          showsVerticalScrollIndicator={false}
           columnWrapperStyle={styles.columnWrapper}
+          showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>No products found in this category.</Text>
+              <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
+                No products found
+              </Text>
+              <Text style={[styles.emptySubtitle, { color: theme.colors.textSecondary }]}>
+                Try selecting a different category
+              </Text>
             </View>
           }
         />
@@ -141,13 +174,10 @@ export const CollectionsScreen: React.FC<{ navigation: any; route: any }> = ({ n
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
   },
   filterContainer: {
     paddingVertical: 12,
-    backgroundColor: colors.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
   },
   filterScroll: {
     paddingHorizontal: 16,
@@ -157,64 +187,78 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: colors.neutral.gray100,
     borderWidth: 1,
-    borderColor: colors.border.medium,
-  },
-  filterChipSelected: {
-    backgroundColor: colors.primary.main,
-    borderColor: colors.primary.main,
   },
   filterText: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: Fonts.medium,
-    color: colors.text.secondary,
-  },
-  filterTextSelected: {
-    color: colors.neutral.white,
   },
   productList: {
-    padding: 16,
+    padding: SPACING,
   },
   columnWrapper: {
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+    gap: SPACING,
   },
   productCard: {
-    width: (width - 40) / 2,
-    backgroundColor: colors.neutral.white,
-    borderRadius: 12,
-    marginBottom: 16,
+    width: CARD_WIDTH,
+    borderRadius: 8,
+    marginBottom: SPACING,
     overflow: 'hidden',
-    elevation: 2,
-    shadowColor: colors.text.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    // Removed contrast elevation for a cleaner modern look, typical of fashion apps
+  },
+  imageContainer: {
+    position: 'relative',
+    width: '100%',
+    aspectRatio: 3 / 4, // Professional Fashion Aspect Ratio
+    backgroundColor: '#f0f0f0',
   },
   productImage: {
     width: '100%',
-    height: 160,
+    height: '100%',
     resizeMode: 'cover',
   },
+  wishlistButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderRadius: 16,
+    padding: 6,
+    zIndex: 1,
+  },
   productInfo: {
-    padding: 12,
+    padding: 10,
   },
   productName: {
     fontSize: 14,
-    fontFamily: Fonts.medium,
-    color: colors.text.primary,
-    marginBottom: 4,
+    fontFamily: Fonts.semiBold,
+    marginBottom: 2,
   },
-  productPrice: {
-    fontSize: 16,
-    fontFamily: Fonts.bold,
-    color: colors.primary.main,
-  },
-  productOriginalPrice: {
+  productDescription: {
     fontSize: 12,
     fontFamily: Fonts.regular,
-    color: colors.text.secondary,
+    marginBottom: 6,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  productPrice: {
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+  },
+  productMRP: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
     textDecorationLine: 'line-through',
+  },
+  discountText: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    color: '#FF9100', // Myntra-like Orange
   },
   loadingContainer: {
     flex: 1,
@@ -225,12 +269,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 50,
+    marginTop: 60,
   },
   emptyTitle: {
     fontSize: 16,
     fontFamily: Fonts.medium,
-    color: colors.text.primary,
-    marginBottom: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
   },
 });

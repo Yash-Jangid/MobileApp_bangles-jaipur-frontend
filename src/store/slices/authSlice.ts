@@ -96,10 +96,18 @@ export const loginUser = createAsyncThunk(
 			try {
 				const oldResponse = await apiService.login(email, password);
 				if (oldResponse.success) {
+					// Save token from old API to storage so apiClient can use it
+					if (oldResponse.data?.token) {
+						await saveAccessToken(oldResponse.data.token);
+						// Also set as auth token for legacy checks
+						await storageService.setAuthToken(oldResponse.data.token);
+						await storageService.setUserData(oldResponse.data);
+					}
+
 					return {
 						user: oldResponse.data,
 						token: oldResponse.data?.token,
-						accessToken: null,
+						accessToken: oldResponse.data?.token, // Map legacy token to accessToken as well
 						refreshToken: null,
 					};
 				}
@@ -135,24 +143,29 @@ export const checkAuthStatus = createAsyncThunk('auth/checkStatus', async (_, { 
 		console.log('Checking auth status...');
 		// Redux Persist automatically rehydrates state, so we check the current state
 		const state = getState() as { auth: AuthState };
-		const { token, user } = state.auth;
+		const { token, accessToken, user } = state.auth;
 
-		console.log('Current Redux state:', { token: !!token, user: !!user });
+		console.log('Current Redux state:', { token: !!token, accessToken: !!accessToken, user: !!user });
 
-		if (token && user) {
+		if ((accessToken || token) && user) {
 			console.log('Found token and user in Redux state');
-			return { user, token };
+			return { user, token: accessToken || token, accessToken: accessToken || token };
 		}
 
 		// Fallback: check AsyncStorage if Redux state is empty
 		console.log('Checking AsyncStorage fallback...');
-		const storedToken = await storageService.getAuthToken();
-		const storedUserData = await storageService.getUserData();
-		console.log('AsyncStorage data:', { token: !!storedToken, user: !!storedUserData });
+		// Check for both new access token and legacy auth token
+		const storedAccessToken = await storageService.getAccessToken();
+		const storedAuthToken = await storageService.getAuthToken();
 
-		if (storedToken && storedUserData) {
+		const validToken = storedAccessToken || storedAuthToken;
+		const storedUserData = await storageService.getUserData();
+
+		console.log('AsyncStorage data:', { token: !!validToken, user: !!storedUserData });
+
+		if (validToken && storedUserData) {
 			console.log('Found token and user in AsyncStorage');
-			return { user: storedUserData, token: storedToken };
+			return { user: storedUserData, token: validToken, accessToken: validToken };
 		}
 
 		console.log('No stored credentials found');
@@ -249,6 +262,7 @@ const authSlice = createSlice({
 				state.isAuthenticated = true;
 				state.user = action.payload.user;
 				state.token = action.payload.token;
+				state.accessToken = action.payload.accessToken;
 				state.error = null;
 				console.log('Auth status check successful, user is authenticated:', action.payload.user?.name);
 			})

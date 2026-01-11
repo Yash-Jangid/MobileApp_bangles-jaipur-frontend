@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Fonts } from '../common/fonts';
 import { useTheme } from '../theme/ThemeContext';
+import { ChevronLeft } from 'lucide-react-native';
 
 interface CustomHeaderProps {
   title: string;
@@ -46,7 +47,7 @@ export const CustomHeader: React.FC<CustomHeaderProps> = ({
                 onPress={onBackPress}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text style={[styles.backButtonText, { color: theme.colors.text }]}>‹</Text>
+                <ChevronLeft size={28} color={theme.colors.text} />
               </TouchableOpacity>
             )}
           </View>

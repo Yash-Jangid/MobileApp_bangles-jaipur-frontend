@@ -63,7 +63,7 @@ export const addToCart = createAsyncThunk(
 
 export const updateCartItem = createAsyncThunk(
     'cart/updateCartItem',
-    async ({ id, payload }: { id: number; payload: UpdateCartItemPayload }, { rejectWithValue }) => {
+    async ({ id, payload }: { id: string; payload: UpdateCartItemPayload }, { rejectWithValue }) => {
         try {
             const response = await cartApi.updateCartItem(id, payload);
             return response.data;
@@ -75,7 +75,7 @@ export const updateCartItem = createAsyncThunk(
 
 export const removeFromCart = createAsyncThunk(
     'cart/removeFromCart',
-    async (id: number, { rejectWithValue }) => {
+    async (id: string, { rejectWithValue }) => {
         try {
             const response = await cartApi.removeFromCart(id);
             return response.data;

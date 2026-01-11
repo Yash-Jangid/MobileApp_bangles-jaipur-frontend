@@ -5,11 +5,11 @@ import { Product } from './productsApi';
 
 export interface CartItem {
   id: number;
-  productId: number;
+  productId: string;
   quantity: number;
   size: string;
   product: Product;
-  userId: number;
+  userId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,7 +24,7 @@ export interface CartSummary {
 }
 
 export interface AddToCartPayload {
-  productId: number;
+  productId: string;
   quantity: number;
   size: string;
 }
@@ -38,7 +38,7 @@ export interface UpdateCartItemPayload {
  */
 export const getCart = async (): Promise<BackendResponse<CartSummary>> => {
   try {
-    const response = await apiClient.get<BackendResponse<CartSummary>>(API_CONFIG.ENDPOINTS.CART.LIST);
+    const response = await apiClient.get<BackendResponse<CartSummary>>(API_CONFIG.ENDPOINTS.CART.ITEMS);
     return response.data;
   } catch (error) {
     throw new Error(handleApiError(error));
@@ -63,7 +63,7 @@ export const addToCart = async (payload: AddToCartPayload): Promise<BackendRespo
 /**
  * Update cart item quantity
  */
-export const updateCartItem = async (itemId: number, payload: UpdateCartItemPayload): Promise<BackendResponse<CartSummary>> => {
+export const updateCartItem = async (itemId: string, payload: UpdateCartItemPayload): Promise<BackendResponse<CartSummary>> => {
   try {
     const response = await apiClient.patch<BackendResponse<CartSummary>>(
       API_CONFIG.ENDPOINTS.CART.UPDATE(itemId),
@@ -78,7 +78,7 @@ export const updateCartItem = async (itemId: number, payload: UpdateCartItemPayl
 /**
  * Remove item from cart
  */
-export const removeFromCart = async (itemId: number): Promise<BackendResponse<CartSummary>> => {
+export const removeFromCart = async (itemId: string): Promise<BackendResponse<CartSummary>> => {
   try {
     const response = await apiClient.delete<BackendResponse<CartSummary>>(
       API_CONFIG.ENDPOINTS.CART.REMOVE(itemId)

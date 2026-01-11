@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,23 +9,31 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
+  FlatList,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+  Share,
 } from 'react-native';
 import { CustomHeader } from '../components/CustomHeader';
-import { colors } from '../theme/colors';
 import { Fonts } from '../common/fonts';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchProductBySlug, clearSelectedProduct } from '../store/slices/productsSlice';
 import { addToCart } from '../store/slices/cartSlice';
+import { useTheme } from '../theme/ThemeContext';
+import { Heart, Share2, Star, ShoppingBag, Truck, RotateCcw, ShieldCheck } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
+const ASPECT_RATIO = 4 / 5;
+const IMAGE_HEIGHT = width * ASPECT_RATIO;
 
-// Bangle sizes in inches
+// Bangle sizes
 const BANGLE_SIZES = ['2.2', '2.4', '2.6', '2.8'];
 
 export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = ({
   navigation,
   route
 }) => {
+  const { theme, isDark } = useTheme();
   const dispatch = useAppDispatch();
   const { selectedProduct, loading, error } = useAppSelector((state) => state.products);
   const { actionLoading } = useAppSelector((state) => state.cart);
@@ -34,6 +42,7 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
   const [selectedSize, setSelectedSize] = useState<string>('2.4');
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [quantity, setQuantity] = useState<number>(1);
+  const [isWishlisted, setIsWishlisted] = useState(false);
 
   useEffect(() => {
     if (slug) {
@@ -43,6 +52,18 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
       dispatch(clearSelectedProduct());
     };
   }, [dispatch, slug]);
+
+  const handleShare = async () => {
+    if (!selectedProduct) return;
+    try {
+      await Share.share({
+        message: `Check out this amazing ${selectedProduct.name} at Bangles Jaipur! \n\nPrice: ₹${selectedProduct.sellingPrice}`,
+        title: selectedProduct.name,
+      });
+    } catch (error: any) {
+      Alert.alert(error.message);
+    }
+  };
 
   const handleAddToCart = async () => {
     if (!selectedProduct) return;
@@ -74,159 +95,205 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
     }
   };
 
+  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const slideSize = event.nativeEvent.layoutMeasurement.width;
+    const index = event.nativeEvent.contentOffset.x / slideSize;
+    const roundIndex = Math.round(index);
+    setSelectedImageIndex(roundIndex);
+  };
+
   if (loading.productDetails) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary.main} />
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   if (error.productDetails || !selectedProduct) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error.productDetails || 'Product not found'}</Text>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+      <View style={[styles.errorContainer, { backgroundColor: theme.colors.background }]}>
+        <Text style={[styles.errorText, { color: theme.colors.text }]}>{error.productDetails || 'Product not found'}</Text>
+        <TouchableOpacity
+          style={[styles.backButton, { backgroundColor: theme.colors.primary }]}
+          onPress={() => navigation.goBack()}
+        >
           <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const { name, description, mrp, sellingPrice, discount, images, specifications } = selectedProduct;
+  const { name, description, mrp, sellingPrice, discountPercentage, images, specifications } = selectedProduct;
   const displayImages = images.length > 0 ? images.map(img => img.imageUrl) : ['https://via.placeholder.com/400'];
+  const discount = Math.round(parseFloat(discountPercentage || '0'));
+
+  const renderProductImage = ({ item }: { item: string }) => (
+    <View style={styles.imageWrapper}>
+      <Image
+        source={{ uri: item }}
+        style={styles.mainImage}
+        resizeMode="cover"
+      />
+    </View>
+  );
 
   return (
-    <View style={styles.container}>
-      <CustomHeader title="Product Details" showBackButton onBackPress={() => navigation.goBack()} />
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <CustomHeader
+        title={name}
+        showBackButton
+        onBackPress={() => navigation.goBack()}
+        rightComponent={
+          <TouchableOpacity onPress={handleShare}>
+            <Share2 size={24} color={theme.colors.text} />
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Image Carousel */}
-        <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: displayImages[selectedImageIndex] }}
-            style={styles.mainImage}
-            resizeMode="cover"
+        <View style={styles.carouselContainer}>
+          <FlatList
+            data={displayImages}
+            renderItem={renderProductImage}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            keyExtractor={(item, index) => index.toString()}
+            style={styles.carousel}
           />
-          <View style={styles.imagePaginationContainer}>
+
+          <TouchableOpacity
+            style={styles.wishlistFloat}
+            onPress={() => setIsWishlisted(!isWishlisted)}
+          >
+            <Heart
+              size={24}
+              color={isWishlisted ? "#FF3E6C" : "#555"}
+              fill={isWishlisted ? "#FF3E6C" : "transparent"}
+            />
+          </TouchableOpacity>
+
+          <View style={styles.paginationContainer}>
             {displayImages.map((_, index) => (
-              <TouchableOpacity
+              <View
                 key={index}
                 style={[
                   styles.paginationDot,
-                  selectedImageIndex === index && styles.paginationDotActive,
+                  { backgroundColor: selectedImageIndex === index ? theme.colors.primary : 'rgba(0,0,0,0.2)' }
                 ]}
-                onPress={() => setSelectedImageIndex(index)}
               />
             ))}
           </View>
         </View>
 
-        {/* Product Info */}
-        <View style={styles.productInfo}>
-          {specifications.material && (
-            <Text style={styles.productCategory}>{specifications.material} Bangles</Text>
-          )}
-          <Text style={styles.productName}>{name}</Text>
-
-          {/* Rating - Placeholder as backend doesn't show rating yet */}
-          <View style={styles.ratingContainer}>
-            <Text style={styles.ratingText}>⭐ 4.8</Text>
-            <Text style={styles.reviewsText}>(120 reviews)</Text>
+        {/* Product Details */}
+        <View style={[styles.detailsContainer, { backgroundColor: theme.colors.background }]}>
+          {/* Title & Brand */}
+          <View style={styles.headerInfo}>
+            <Text style={[styles.brandName, { color: theme.colors.textSecondary }]}>
+              {specifications?.material || 'Premium Brand'}
+            </Text>
+            <Text style={[styles.productTitle, { color: theme.colors.text }]}>{name}</Text>
           </View>
 
-          {/* Price */}
-          <View style={styles.priceContainer}>
-            {discount > 0 ? (
-              <>
-                <Text style={styles.discountPrice}>₹{sellingPrice}</Text>
-                <Text style={styles.originalPrice}>₹{mrp}</Text>
-                <View style={styles.discountBadge}>
-                  <Text style={styles.discountText}>
-                    {discount}% OFF
-                  </Text>
-                </View>
-              </>
-            ) : (
-              <Text style={styles.discountPrice}>₹{sellingPrice}</Text>
-            )}
+          {/* Pricing */}
+          <View style={[styles.priceBlock, { borderBottomColor: theme.colors.border }]}>
+            <View style={styles.priceRow}>
+              <Text style={[styles.sellingPrice, { color: theme.colors.text }]}>₹{sellingPrice}</Text>
+              {discount > 0 && (
+                <>
+                  <Text style={[styles.mrp, { color: theme.colors.textSecondary }]}>MRP ₹{mrp}</Text>
+                  <Text style={styles.discountText}>({discount}% OFF)</Text>
+                </>
+              )}
+            </View>
+            <Text style={styles.taxText}>inclusive of all taxes</Text>
           </View>
 
           {/* Size Selection */}
-          <View style={styles.sizeSection}>
-            <Text style={styles.sectionTitle}>Select Size (inches)</Text>
-            <View style={styles.sizesContainer}>
+          <View style={[styles.selectionBlock, { borderBottomColor: theme.colors.border }]}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>SELECT SIZE</Text>
+              <TouchableOpacity>
+                <Text style={[styles.sizeGuideText, { color: theme.colors.primary }]}>Size Chart</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.sizeOptions}>
               {BANGLE_SIZES.map((size) => (
                 <TouchableOpacity
                   key={size}
                   style={[
-                    styles.sizeButton,
-                    selectedSize === size && styles.sizeButtonSelected,
+                    styles.sizeCircle,
+                    selectedSize === size
+                      ? { borderColor: theme.colors.primary, backgroundColor: theme.colors.background }
+                      : { borderColor: theme.colors.border }
                   ]}
                   onPress={() => setSelectedSize(size)}
                 >
-                  <Text
-                    style={[
-                      styles.sizeText,
-                      selectedSize === size && styles.sizeTextSelected,
-                    ]}
-                  >
-                    {size}"
-                  </Text>
+                  <Text style={[
+                    styles.sizeText,
+                    selectedSize === size ? { color: theme.colors.primary } : { color: theme.colors.textSecondary }
+                  ]}>{size}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
 
-          {/* Quantity Selector */}
-          <View style={styles.quantitySection}>
-            <Text style={styles.sectionTitle}>Quantity</Text>
-            <View style={styles.quantityControls}>
-              <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={() => setQuantity(Math.max(1, quantity - 1))}
-              >
-                <Text style={styles.quantityButtonText}>−</Text>
-              </TouchableOpacity>
-              <Text style={styles.quantityValue}>{quantity}</Text>
-              <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={() => setQuantity(quantity + 1)}
-              >
-                <Text style={styles.quantityButtonText}>+</Text>
-              </TouchableOpacity>
+          {/* Delivery & Services */}
+          <View style={[styles.serviceBlock, { borderBottomColor: theme.colors.border }]}>
+            <View style={styles.serviceItem}>
+              <Truck size={20} color={theme.colors.textSecondary} />
+              <Text style={[styles.serviceText, { color: theme.colors.text }]}>Free Delivery</Text>
+            </View>
+            <View style={styles.serviceItem}>
+              <RotateCcw size={20} color={theme.colors.textSecondary} />
+              <Text style={[styles.serviceText, { color: theme.colors.text }]}>30 Days Return</Text>
+            </View>
+            <View style={styles.serviceItem}>
+              <ShieldCheck size={20} color={theme.colors.textSecondary} />
+              <Text style={[styles.serviceText, { color: theme.colors.text }]}>100% Original</Text>
             </View>
           </View>
 
-          {/* Description */}
-          <View style={styles.descriptionSection}>
-            <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.description}>{description}</Text>
+          {/* Product Description */}
+          <View style={styles.descBlock}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>PRODUCT DETAILS</Text>
+            <Text style={[styles.descriptionText, { color: theme.colors.textSecondary }]}>
+              {description}
+            </Text>
+            {/* Specs Table could go here */}
           </View>
-        </View>
 
-        <View style={styles.bottomSpacing} />
+          {/* Spacer for bottom bar */}
+          <View style={{ height: 80 }} />
+        </View>
       </ScrollView>
 
-      {/* Bottom Action Buttons */}
-      <View style={styles.bottomActions}>
+      {/* Sticky Bottom Action Bar */}
+      <View style={[styles.bottomBar, { backgroundColor: theme.colors.card, borderTopColor: theme.colors.border }]}>
         <TouchableOpacity
-          style={styles.addToCartButton}
+          style={[styles.cartButton, { borderColor: theme.colors.border }]}
           onPress={handleAddToCart}
           disabled={actionLoading?.add}
         >
-          {actionLoading?.add ? (
-            <ActivityIndicator size="small" color={colors.primary.main} />
-          ) : (
-            <Text style={styles.addToCartText}>Add to Cart</Text>
-          )}
+          <ShoppingBag size={20} color={theme.colors.text} style={{ marginRight: 8 }} />
+          <Text style={[styles.cartButtonText, { color: theme.colors.text }]}>Add to Bag</Text>
         </TouchableOpacity>
+
         <TouchableOpacity
-          style={styles.buyNowButton}
+          style={[styles.buyButton, { backgroundColor: theme.colors.primary }]}
           onPress={handleBuyNow}
           disabled={actionLoading?.add}
         >
-          <Text style={styles.buyNowText}>Buy Now</Text>
+          {actionLoading?.add ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buyButtonText}>Buy Now</Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -235,10 +302,6 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-  },
-  scrollView: {
     flex: 1,
   },
   loadingContainer: {
@@ -254,34 +317,58 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: colors.semantic.error,
     marginBottom: 20,
     textAlign: 'center',
   },
   backButton: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: colors.primary.main,
     borderRadius: 8,
   },
   backButtonText: {
-    color: colors.neutral.white,
+    color: '#fff',
     fontWeight: 'bold',
   },
-  imageContainer: {
+  scrollView: {
+    flex: 1,
+  },
+  carouselContainer: {
+    position: 'relative',
+    height: IMAGE_HEIGHT,
+  },
+  carousel: {
     width: width,
-    height: width,
-    backgroundColor: colors.neutral.gray100,
+    height: IMAGE_HEIGHT,
+  },
+  imageWrapper: {
+    width: width,
+    height: IMAGE_HEIGHT,
+    backgroundColor: '#f9f9f9',
   },
   mainImage: {
     width: '100%',
     height: '100%',
   },
-  imagePaginationContainer: {
+  wishlistFloat: {
     position: 'absolute',
-    bottom: 20,
-    left: 0,
-    right: 0,
+    top: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+  },
+  paginationContainer: {
+    position: 'absolute',
+    bottom: 16,
+    width: '100%',
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
@@ -290,179 +377,156 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.neutral.gray400,
   },
-  paginationDotActive: {
-    backgroundColor: colors.primary.main,
-    width: 24,
+  detailsContainer: {
+    padding: 16,
   },
-  productInfo: {
-    padding: 20,
-  },
-  productCategory: {
-    fontSize: 14,
-    fontFamily: Fonts.medium,
-    color: colors.primary.main,
-    marginBottom: 8,
-  },
-  productName: {
-    fontSize: 24,
-    fontFamily: Fonts.bold,
-    color: colors.text.primary,
-    marginBottom: 12,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  headerInfo: {
     marginBottom: 16,
   },
-  ratingText: {
+  brandName: {
     fontSize: 16,
-    fontFamily: Fonts.medium,
-    color: colors.text.primary,
-    marginRight: 8,
-  },
-  reviewsText: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: colors.text.secondary,
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  discountPrice: {
-    fontSize: 28,
     fontFamily: Fonts.bold,
-    color: colors.primary.main,
-    marginRight: 12,
+    marginBottom: 4,
+    textTransform: 'uppercase',
   },
-  originalPrice: {
-    fontSize: 18,
-    fontFamily: Fonts.regular,
-    color: colors.text.secondary,
-    textDecorationLine: 'line-through',
-    marginRight: 12,
-  },
-  discountBadge: {
-    backgroundColor: colors.accent.main,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  discountText: {
-    fontSize: 12,
-    fontFamily: Fonts.bold,
-    color: colors.neutral.white,
-  },
-  sizeSection: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: Fonts.semiBold,
-    color: colors.text.primary,
-    marginBottom: 12,
-  },
-  sizesContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  sizeButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: colors.border.medium,
-    backgroundColor: colors.neutral.white,
-  },
-  sizeButtonSelected: {
-    borderColor: colors.primary.main,
-    backgroundColor: colors.primary.light,
-  },
-  sizeText: {
+  productTitle: {
     fontSize: 16,
-    fontFamily: Fonts.medium,
-    color: colors.text.primary,
-  },
-  sizeTextSelected: {
-    color: colors.primary.main,
-  },
-  quantitySection: {
-    marginBottom: 24,
-  },
-  quantityControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  quantityButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    backgroundColor: colors.neutral.gray100,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  quantityButtonText: {
-    fontSize: 24,
-    fontFamily: Fonts.medium,
-    color: colors.text.primary,
-  },
-  quantityValue: {
-    fontSize: 18,
-    fontFamily: Fonts.semiBold,
-    color: colors.text.primary,
-    marginHorizontal: 20,
-    minWidth: 40,
-    textAlign: 'center',
-  },
-  descriptionSection: {
-    marginBottom: 24,
-  },
-  description: {
-    fontSize: 15,
     fontFamily: Fonts.regular,
-    color: colors.text.secondary,
     lineHeight: 22,
   },
-  bottomSpacing: {
-    height: 100,
+  priceBlock: {
+    borderBottomWidth: 1,
+    paddingBottom: 16,
+    marginBottom: 16,
   },
-  bottomActions: {
+  priceRow: {
     flexDirection: 'row',
-    padding: 16,
-    backgroundColor: colors.neutral.white,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  sellingPrice: {
+    fontSize: 20,
+    fontFamily: Fonts.bold,
+  },
+  mrp: {
+    fontSize: 16,
+    textDecorationLine: 'line-through',
+    fontFamily: Fonts.regular,
+  },
+  discountText: {
+    fontSize: 16,
+    color: '#FF9100',
+    fontFamily: Fonts.bold,
+  },
+  taxText: {
+    fontSize: 12,
+    color: '#03A685', // Myntra green for inclusive tax
+    fontFamily: Fonts.medium,
+  },
+  selectionBlock: {
+    borderBottomWidth: 1,
+    paddingBottom: 20,
+    marginBottom: 20,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+    marginBottom: 8,
+  },
+  sizeGuideText: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    textTransform: 'uppercase',
+  },
+  sizeOptions: {
+    flexDirection: 'row',
     gap: 12,
   },
-  addToCartButton: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: 12,
-    backgroundColor: colors.neutral.white,
-    borderWidth: 2,
-    borderColor: colors.primary.main,
+  sizeCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  addToCartText: {
-    fontSize: 16,
-    fontFamily: Fonts.semiBold,
-    color: colors.primary.main,
+  sizeText: {
+    fontSize: 14,
+    fontFamily: Fonts.bold,
   },
-  buyNowButton: {
+  serviceBlock: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    paddingBottom: 20,
+    marginBottom: 20,
+  },
+  serviceItem: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  serviceText: {
+    fontSize: 10,
+    fontFamily: Fonts.medium,
+  },
+  descBlock: {
+    marginBottom: 20,
+  },
+  descriptionText: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    lineHeight: 22,
+  },
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    height: 70,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  cartButton: {
     flex: 1,
-    paddingVertical: 16,
-    borderRadius: 12,
-    backgroundColor: colors.primary.main,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 4,
+    marginRight: 8,
+    backgroundColor: 'transparent',
   },
-  buyNowText: {
-    fontSize: 16,
-    fontFamily: Fonts.semiBold,
-    color: colors.neutral.white,
+  buyButton: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  cartButtonText: {
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+    textTransform: 'uppercase',
+  },
+  buyButtonText: {
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+    color: '#fff',
+    textTransform: 'uppercase',
   },
 });
