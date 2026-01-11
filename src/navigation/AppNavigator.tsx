@@ -40,15 +40,8 @@ const MainTabNavigator = () => {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          ...(Platform.OS === 'ios' ? styles.tabBarIOS : styles.tabBarAndroid),
-          backgroundColor: theme?.colors?.background || '#FFFFFF',
-          borderTopColor: theme?.colors?.border || 'rgba(0,0,0,0.08)',
+          display: 'none',
         },
-        tabBarActiveTintColor: '#D4AF37',
-        tabBarInactiveTintColor: theme?.colors?.textSecondary || '#8E8E93',
-        tabBarLabelStyle: Platform.OS === 'ios' ? styles.tabLabelIOS : styles.tabLabelAndroid,
-        tabBarIconStyle: Platform.OS === 'ios' ? styles.tabIconIOS : styles.tabIconAndroid,
-        tabBarItemStyle: Platform.OS === 'ios' ? styles.tabItemIOS : styles.tabItemAndroid,
       }}
     >
       <Tab.Screen

@@ -1,11 +1,5 @@
 const Images = {
   logo: require('../assets/images/banglesLogo.png'),
-  chevron_right: require('../assets/images/chevron_right.png'),
-  onboarding1: require('../assets/images/onboarding1.png'),
-  onboarding2: require('../assets/images/onboarding2.png'),
-  onboarding3: require('../assets/images/onboarding3.png'),
-  google_icon: require('../assets/images/google.png'),
-  apple_icon: require('../assets/images/apple.png'),
-  serverErrorImage: require('../assets/images/globalError.png'),
+  commonCategories: "https://jewelscart.co.in/wp-content/uploads/2026/01/WhatsApp-Image-2026-01-04-at-9.41.59-AM-800x1067.jpeg"
 };
 export { Images };

@@ -12,7 +12,7 @@ import {
   FlatList,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { CustomHeader } from '../components/CustomHeader';
+import { AppHeader } from '../components/AppHeader';
 import { Colors } from '../common/colors';
 import { colors } from '../theme/colors';
 import { Fonts } from '../common/fonts';
@@ -131,50 +131,67 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     );
   };
 
-  const renderQuickActions = () => (
-    <View style={styles.quickActionsContainer}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Quick Links</Text>
-      <View style={styles.quickActionsGrid}>
-        <TouchableOpacity
-          style={styles.quickActionItem}
-          onPress={() => navigation.navigate('Collections')}
-        >
-          <Text style={styles.quickActionIcon}>🛍️</Text>
-          <Text style={styles.quickActionText}>Shop by Category</Text>
-        </TouchableOpacity>
+  const priceRanges = [
+    { id: '1', label: 'Under ₹100', maxPrice: 100 },
+    { id: '2', label: 'Under ₹500', maxPrice: 500 },
+    { id: '3', label: 'Under ₹1000', maxPrice: 1000 },
+    { id: '4', label: 'Under ₹2000', maxPrice: 2000 },
+    { id: '5', label: 'Under ₹5000', maxPrice: 5000 },
+  ];
 
-        <TouchableOpacity
-          style={styles.quickActionItem}
-          onPress={() => navigation.navigate('Cart')}
-        >
-          <Text style={styles.quickActionIcon}>🛒</Text>
-          <Text style={styles.quickActionText}>View Cart</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.quickActionItem}
-          onPress={() => navigation.navigate('Orders')}
-        >
-          <Text style={styles.quickActionIcon}>📦</Text>
-          <Text style={styles.quickActionText}>My Orders</Text>
-        </TouchableOpacity>
+  const renderShopByPrice = () => (
+    <View style={styles.shopByPriceContainer}>
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Shop by Price</Text>
       </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.priceScroll}>
+        {priceRanges.map((range) => (
+          <View key={range.id} style={styles.priceContainer}>
+            <TouchableOpacity
+              style={[styles.priceCircle, { backgroundColor: theme.colors.card }]}
+              onPress={() => navigation.navigate('Collections', { maxPrice: range.maxPrice })}
+            >
+              <Text style={[styles.priceLabel, { color: theme.colors.primary }]}>{range.label}</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </ScrollView>
     </View>
   );
 
+  const renderAdvertisement = () => (
+    <View style={styles.advertisementContainer}>
+      <TouchableOpacity
+        style={[styles.adBanner, { backgroundColor: theme.colors.card }]}
+        onPress={() => { }}
+      >
+        <LinearGradient
+          colors={['#FF3E6C', '#FF63A5']}
+          style={styles.adGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <Text style={styles.adTitle}>MEGA SALE</Text>
+          <Text style={styles.adSubtitle}>Up to 70% OFF on all bangles</Text>
+          <Text style={styles.adCTA}>Shop Now →</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    </View>
+  );
+
+
   const renderCategories = () => (
     <View style={styles.categoriesContainer}>
-      <View style={styles.sectionHeader}>
+      {/* <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Shop by Category</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Collections')}>
           <Text style={styles.seeAllText}>See All</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
 
       {loading.categories ? (
         <ActivityIndicator size="small" color={colors.primary.main} />
-      ) : categories.length === 0 ? (
-        <Text style={styles.emptySubtitle}>No categories found</Text>
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
           {categories.map((category) => (
@@ -218,36 +235,46 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           </Text>
         </View>
       ) : (
-        featuredProducts.map((product) => (
-          <TouchableOpacity
-            key={product.id}
-            style={[styles.courseCard, { backgroundColor: theme.colors.card }]}
-            onPress={() => navigateToProductDetail(product.slug)}
-          >
-            <Image
-              source={{ uri: product.images[0]?.imageUrl || 'https://via.placeholder.com/150' }}
-              style={styles.courseImage}
-            />
-            <View style={styles.courseContent}>
-              <Text style={[styles.courseTitle, { color: theme.colors.text }]} numberOfLines={2}>
-                {product.name}
-              </Text>
-              <Text style={[styles.courseInstructor, { color: theme.colors.textSecondary }]}>{product.specifications?.material || 'Premium Material'}</Text>
-              <View style={styles.courseStats}>
-                {/* Rating is not in product type yet, using static or removing */}
-                <Text style={[styles.courseRating, { color: theme.colors.textSecondary }]}>⭐ 4.8</Text>
-                <Text style={[styles.coursePrice, { color: theme.colors.primary }]}>₹{product.sellingPrice}</Text>
+        <FlatList
+          data={featuredProducts.slice(0, 6)}
+          numColumns={2}
+          scrollEnabled={false}
+          keyExtractor={(item) => item.id}
+          columnWrapperStyle={styles.productRow}
+          renderItem={({ item: product }) => (
+            <TouchableOpacity
+              style={[styles.courseCard, { backgroundColor: theme.colors.card }]}
+              onPress={() => navigateToProductDetail(product.slug)}
+            >
+              <Image
+                source={{ uri: product.images[0]?.imageUrl || 'https://via.placeholder.com/150' }}
+                style={styles.courseImage}
+              />
+              <View style={styles.courseContent}>
+                <Text style={[styles.courseTitle, { color: theme.colors.text }]} numberOfLines={2}>
+                  {product.name}
+                </Text>
+                <Text style={[styles.courseInstructor, { color: theme.colors.textSecondary }]} numberOfLines={1}>{product.specifications?.material || 'Premium Material'}</Text>
+                <View style={styles.courseStats}>
+                  <Text style={[styles.courseRating, { color: theme.colors.textSecondary }]}>⭐ 4.8</Text>
+                  <Text style={[styles.coursePrice, { color: theme.colors.primary }]}>₹{product.sellingPrice}</Text>
+                </View>
               </View>
-            </View>
-          </TouchableOpacity>
-        ))
+            </TouchableOpacity>
+          )}
+        />
       )}
     </View>
   );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <CustomHeader title="Jaipur Bangles" />
+      <AppHeader
+        showWishlist={true}
+        showProfile={true}
+        onWishlistPress={() => navigation.navigate('Wishlist')}
+        onProfilePress={() => navigation.navigate('Profile')}
+      />
 
       <ScrollView
         style={{ backgroundColor: theme.colors.background }}
@@ -259,9 +286,11 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             colors={['#D4AF37']}
           />
         }
-      >  {renderWelcomeSection()}
-        {renderQuickActions()}
+      >
         {renderCategories()}
+        {renderWelcomeSection()}
+        {renderShopByPrice()}
+        {renderAdvertisement()}
         {renderFeaturedProducts()}
       </ScrollView>
     </View>
@@ -373,7 +402,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 4,
   },
   seeAllText: {
     fontSize: Fonts.size.sm,
@@ -417,10 +446,16 @@ const styles = StyleSheet.create({
   featuredCoursesContainer: {
     padding: 20,
   },
+  productRow: {
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
   courseCard: {
     backgroundColor: Colors.card,
     borderRadius: 12,
-    marginBottom: 16,
+    flex: 1,
+    marginHorizontal: 6,
+    maxWidth: '48%',
     elevation: 2,
     shadowColor: Colors.textPrimary,
     shadowOffset: { width: 0, height: 2 },
@@ -488,5 +523,73 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+  // Shop by Price Styles
+  shopByPriceContainer: {
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+  },
+  priceScroll: {
+    marginHorizontal: -4,
+  },
+  priceContainer: {
+    alignItems: 'center',
+    marginHorizontal: 8,
+  },
+  priceCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: Colors.textPrimary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+  },
+  priceLabel: {
+    fontSize: Fonts.size.xs,
+    fontFamily: Fonts.bold,
+  },
+  // Advertisement Styles
+  advertisementContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  adBanner: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+  },
+  adGradient: {
+    padding: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 150,
+  },
+  adTitle: {
+    fontSize: 28,
+    fontFamily: Fonts.bold,
+    color: Colors.textLight,
+    marginBottom: 8,
+    letterSpacing: 1,
+  },
+  adSubtitle: {
+    fontSize: 16,
+    fontFamily: Fonts.medium,
+    color: Colors.textLight,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  adCTA: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: Colors.textLight,
+    letterSpacing: 0.5,
   },
 });

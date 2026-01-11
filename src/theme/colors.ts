@@ -52,5 +52,11 @@ export const colors = {
     light: '#E5E7EB',
     medium: '#D1D5DB',
     dark: '#9CA3AF'
-  }
+  },
+  header: {
+    background: '#360F10',
+    text: '#FFFFFF'
+  },
+
+
 };

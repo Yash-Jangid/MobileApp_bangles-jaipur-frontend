@@ -5,6 +5,8 @@ export const lightTheme = {
         primary: '#D4AF37',
         primaryLight: '#F5E6B3',
         primaryDark: '#B8941F',
+        headerBackground: '#360F10',
+        headerText: '#FFFFFF',
 
         // Background colors
         background: '#FFFFFF',
@@ -78,6 +80,8 @@ export const darkTheme = {
         background: '#121212',
         backgroundSecondary: '#1E1E1E',
         backgroundTertiary: '#2A2A2A',
+        headerBackground: '#360F10',
+        headerText: '#FFFFFF',
 
         // Card and surface colors
         card: '#1E1E1E',
