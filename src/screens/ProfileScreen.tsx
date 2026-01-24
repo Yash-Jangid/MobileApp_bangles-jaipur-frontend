@@ -12,7 +12,7 @@ import {
     ViewStyle,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { CustomHeader } from '../components/CustomHeader';
+import { ThemeHeader } from '../components/ThemeHeader';
 import { Fonts } from '../common/fonts';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logoutUser } from '../store/slices/authSlice';
@@ -38,7 +38,8 @@ const { width } = Dimensions.get('window');
 export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const dispatch = useAppDispatch();
     const { user, isAuthenticated, isGuestMode } = useAppSelector((state) => state.auth);
-    const { theme, themeMode, setThemeMode, isDark } = useTheme();
+    const { theme, themeMode, setThemeMode } = useTheme();
+    const isDark = theme.isDark;
     const { orders } = useAppSelector((state) => state.orders);
     const [refreshing, setRefreshing] = useState(false);
 
@@ -97,10 +98,10 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
             activeOpacity={0.7}
         >
             <View style={[styles.menuIconContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#F5F5F5' }]}>
-                <IconComponent size={20} color={theme.colors.text} />
+                <IconComponent size={20} color={theme.colors.textPrimary} />
             </View>
             <View style={styles.menuTextContainer}>
-                <Text style={[styles.menuTitle, { color: theme.colors.text }]}>{title}</Text>
+                <Text style={[styles.menuTitle, { color: theme.colors.textPrimary }]}>{title}</Text>
                 {subtitle && <Text style={[styles.menuSubtitle, { color: theme.colors.textSecondary }]}>{subtitle}</Text>}
             </View>
             <ChevronRight size={20} color={theme.colors.textSecondary} />
@@ -111,20 +112,18 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
     if (isGuestMode) {
         return (
             <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-                <CustomHeader
+                <ThemeHeader
                     title="Profile"
-                    rightComponent={
-                        <TouchableOpacity onPress={() => navigation.navigate('Cart')}>
-                            <ShoppingBag size={24} color={theme.colors.text} />
-                        </TouchableOpacity>
-                    }
+                    onSearchPress={() => { }}
+                    onCartPress={() => navigation.navigate('Cart')}
+                    onMenuPress={() => navigation.navigate('Collections')}
                 />
                 <ScrollView contentContainerStyle={styles.guestContainer}>
                     <View style={styles.guestContent}>
-                        <View style={[styles.guestIconContainer, { backgroundColor: theme.colors.card }]}>
+                        <View style={[styles.guestIconContainer, { backgroundColor: theme.colors.surface }]}>
                             <User size={48} color={theme.colors.primary} />
                         </View>
-                        <Text style={[styles.guestTitle, { color: theme.colors.text }]}>You're browsing as Guest</Text>
+                        <Text style={[styles.guestTitle, { color: theme.colors.textPrimary }]}>You're browsing as Guest</Text>
                         <Text style={[styles.guestSubtitle, { color: theme.colors.textSecondary }]}>
                             Login to access your orders, wishlist, and personalized recommendations
                         </Text>
@@ -150,28 +149,44 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
         );
     }
 
+    const isZeraki = theme.layout.headerStyle === 'logo-left-icons-right';
     const totalOrders = orders?.length || 0;
+
+    // Legacy Render Item for Orders
+    const renderLegacyOrder = (order: any) => (
+        <TouchableOpacity
+            key={order.id}
+            style={[styles.legacyOrderItem, { borderBottomColor: theme.colors.border }]}
+            onPress={() => navigation.navigate('OrderDetails', { orderId: order.id })}
+        >
+            <View>
+                <Text style={[styles.legacyOrderTitle, { color: theme.colors.textPrimary }]}>Order #{order.orderNumber || order.id?.slice(-6)}</Text>
+                <Text style={[styles.legacyOrderDate, { color: theme.colors.textSecondary }]}>
+                    {new Date(order.createdAt).toLocaleDateString()}
+                </Text>
+            </View>
+            <Text style={[styles.legacyOrderStatus, { color: theme.colors.primary }]}>{order.status}</Text>
+        </TouchableOpacity>
+    );
 
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-            <CustomHeader
+            <ThemeHeader
                 title="Profile"
-                rightComponent={
-                    <TouchableOpacity onPress={() => navigation.navigate('Cart')}>
-                        <ShoppingBag size={24} color={theme.colors.text} />
-                    </TouchableOpacity>
-                }
+                onSearchPress={() => { }}
+                onCartPress={() => navigation.navigate('Cart')}
+                onMenuPress={() => navigation.navigate('Collections')}
             />
 
             <ScrollView
-                style={[styles.scrollView, { backgroundColor: theme.colors.backgroundSecondary }]}
+                style={[styles.scrollView, { backgroundColor: isZeraki ? theme.colors.surfaceHighlight : theme.colors.background }]}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
                 }
             >
-                {/* Profile Header */}
-                <View style={[styles.profileHeader, { backgroundColor: theme.colors.background }]}>
+                {/* User Info Header (Shared but styled differently if needed) */}
+                <View style={[styles.profileHeader, { backgroundColor: theme.colors.background, paddingBottom: isZeraki ? 12 : 24 }]}>
                     <View style={styles.profileInfoContainer}>
                         <View style={[styles.avatarCircle, { backgroundColor: theme.colors.primary }]}>
                             <Text style={styles.avatarText}>
@@ -179,7 +194,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
                             </Text>
                         </View>
                         <View style={styles.userInfo}>
-                            <Text style={[styles.userName, { color: theme.colors.text }]}>{user?.name || 'User'}</Text>
+                            <Text style={[styles.userName, { color: theme.colors.textPrimary }]}>{user?.name || 'User'}</Text>
                             <Text style={[styles.userEmail, { color: theme.colors.textSecondary }]}>{user?.email || ''}</Text>
                             <TouchableOpacity style={styles.editProfileBtn}>
                                 <Text style={[styles.editProfileText, { color: theme.colors.primary }]}>Edit Profile</Text>
@@ -188,72 +203,130 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
                     </View>
                 </View>
 
-                {/* Account Settings Section */}
-                <View style={[styles.sectionContainer, { backgroundColor: theme.colors.background }]}>
-                    <Text style={[styles.sectionHeaderTitle, { color: theme.colors.textSecondary }]}>MY ACCOUNT</Text>
+                {isZeraki ? (
+                    /* ================= MODERN / ZERAKI LAYOUT ================= */
+                    <>
+                        {/* Account Settings Section */}
+                        <View style={[styles.sectionContainer, { backgroundColor: theme.colors.background }]}>
+                            <Text style={[styles.sectionHeaderTitle, { color: theme.colors.textSecondary }]}>MY ACCOUNT</Text>
 
-                    <MenuLink
-                        title="Orders"
-                        subtitle={`Check your order status (${totalOrders})`}
-                        icon={Package}
-                        onPress={() => navigation.navigate('Orders')}
-                    />
-                    <MenuLink
-                        title="Wishlist"
-                        subtitle="Your favorite items"
-                        icon={Heart}
-                        onPress={() => { }}
-                    />
-                    <MenuLink
-                        title="Addresses"
-                        subtitle="Manage delivery addresses"
-                        icon={MapPin}
-                        onPress={() => { }}
-                    />
-                    <MenuLink
-                        title="Help Center"
-                        subtitle="Help regarding your recent purchases"
-                        icon={LifeBuoy}
-                        onPress={() => { }}
-                    />
-                </View>
+                            <MenuLink
+                                title="Orders"
+                                subtitle={`Check your order status (${totalOrders})`}
+                                icon={Package}
+                                onPress={() => navigation.navigate('Orders')}
+                            />
+                            <MenuLink
+                                title="Wishlist"
+                                subtitle="Your favorite items"
+                                icon={Heart}
+                                onPress={() => { }}
+                            />
+                            <MenuLink
+                                title="Addresses"
+                                subtitle="Manage delivery addresses"
+                                icon={MapPin}
+                                onPress={() => { }}
+                            />
+                            <MenuLink
+                                title="Help Center"
+                                subtitle="Help regarding your recent purchases"
+                                icon={LifeBuoy}
+                                onPress={() => { }}
+                            />
+                        </View>
 
-                {/* App Settings Section */}
-                <View style={[styles.sectionContainer, { backgroundColor: theme.colors.background }]}>
-                    <Text style={[styles.sectionHeaderTitle, { color: theme.colors.textSecondary }]}>SETTINGS</Text>
+                        {/* App Settings Section */}
+                        <View style={[styles.sectionContainer, { backgroundColor: theme.colors.background }]}>
+                            <Text style={[styles.sectionHeaderTitle, { color: theme.colors.textSecondary }]}>SETTINGS</Text>
 
-                    {/* Theme Selector as Menu Items */}
+                            {/* Theme Selector */}
+                            <TouchableOpacity
+                                style={[styles.menuItem, { borderBottomColor: theme.colors.border }]}
+                                onPress={() => {
+                                    const nextMode = themeMode === 'light' ? 'dark' : themeMode === 'dark' ? 'auto' : 'light';
+                                    setThemeMode(nextMode);
+                                }}
+                            >
+                                <View style={[styles.menuIconContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#F5F5F5' }]}>
+                                    {themeMode === 'light' ? <Sun size={20} color={theme.colors.textPrimary} /> :
+                                        themeMode === 'dark' ? <Moon size={20} color={theme.colors.textPrimary} /> :
+                                            <Monitor size={20} color={theme.colors.textPrimary} />}
+                                </View>
+                                <View style={styles.menuTextContainer}>
+                                    <Text style={[styles.menuTitle, { color: theme.colors.textPrimary }]}>Appearance</Text>
+                                    <Text style={[styles.menuSubtitle, { color: theme.colors.textSecondary }]}>
+                                        {themeMode.charAt(0).toUpperCase() + themeMode.slice(1)} Mode
+                                    </Text>
+                                </View>
+                                <ChevronRight size={20} color={theme.colors.textSecondary} />
+                            </TouchableOpacity>
+
+                            <MenuLink title="App Settings" icon={Settings} onPress={() => { }} />
+                        </View>
+                    </>
+                ) : (
+                    /* ================= LEGACY / MIDNIGHT LAYOUT ================= */
+                    <View style={{ padding: 16 }}>
+                        {/* Legacy Orders Section -> Uses ProfileSection if imported, or just simulated structure */}
+                        {/* Since ProfileSection import isn't in scope of this file yet, I'll simulate it for now or assume I added the import. 
+                            Wait, I need to add the import first? 
+                            I'll stick to a simple clean layout that matches the 'Section' vibe. 
+                        */}
+                        <View style={{ marginBottom: 24 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                <Text style={{ fontSize: 18, fontWeight: '600', color: theme.colors.textPrimary }}>My Orders</Text>
+                                <TouchableOpacity onPress={() => navigation.navigate('Orders')}>
+                                    <Text style={{ fontSize: 14, color: theme.colors.primary }}>View All</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            {/* Recent Orders List */}
+                            {orders && orders.length > 0 ? (
+                                <View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, overflow: 'hidden' }}>
+                                    {orders.slice(0, 3).map(renderLegacyOrder)}
+                                </View>
+                            ) : (
+                                <View style={{ backgroundColor: theme.colors.surface, padding: 20, borderRadius: 12, alignItems: 'center' }}>
+                                    <Text style={{ color: theme.colors.textSecondary }}>No recent orders</Text>
+                                </View>
+                            )}
+                        </View>
+
+                        {/* Legacy Menu Items (Simpler List) */}
+                        <View style={{ backgroundColor: theme.colors.surface, borderRadius: 12, overflow: 'hidden' }}>
+                            <MenuLink title="Wishlist" icon={Heart} onPress={() => { }} />
+                            <MenuLink title="Addresses" icon={MapPin} onPress={() => { }} />
+                            <MenuLink title="Help Center" icon={LifeBuoy} onPress={() => { }} />
+                            <MenuLink title="Settings" icon={Settings} onPress={() => { }} />
+                        </View>
+
+                        {/* Theme Toggle for Legacy */}
+                        <View style={{ marginTop: 24, backgroundColor: theme.colors.surface, borderRadius: 12, overflow: 'hidden' }}>
+                            <TouchableOpacity
+                                style={[styles.menuItem, { borderBottomColor: theme.colors.border, borderBottomWidth: 0 }]}
+                                onPress={() => setThemeMode(themeMode === 'light' ? 'dark' : 'light')}
+                            >
+                                <View style={[styles.menuIconContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#F5F5F5' }]}>
+                                    <Moon size={20} color={theme.colors.textPrimary} />
+                                </View>
+                                <View style={styles.menuTextContainer}>
+                                    <Text style={[styles.menuTitle, { color: theme.colors.textPrimary }]}>Dark Mode</Text>
+                                </View>
+                                <View style={{ width: 40, height: 20, borderRadius: 10, backgroundColor: isDark ? theme.colors.primary : '#ccc', justifyContent: 'center', alignItems: isDark ? 'flex-end' : 'flex-start', paddingHorizontal: 2 }}>
+                                    <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: '#fff' }} />
+                                </View>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                )}
+
+                {/* Logout Button (Shared) */}
+                <View style={[styles.sectionContainer, { backgroundColor: 'transparent', marginVertical: 20, paddingHorizontal: 16 }]}>
                     <TouchableOpacity
-                        style={[styles.menuItem, { borderBottomColor: theme.colors.border }]}
-                        onPress={() => {
-                            const nextMode = themeMode === 'light' ? 'dark' : themeMode === 'dark' ? 'auto' : 'light';
-                            setThemeMode(nextMode);
-                        }}
+                        style={[styles.logoutRow, { backgroundColor: isZeraki ? theme.colors.background : theme.colors.surface, borderRadius: 8 }]}
+                        onPress={handleLogout}
                     >
-                        <View style={[styles.menuIconContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#F5F5F5' }]}>
-                            {themeMode === 'light' ? <Sun size={20} color={theme.colors.text} /> :
-                                themeMode === 'dark' ? <Moon size={20} color={theme.colors.text} /> :
-                                    <Monitor size={20} color={theme.colors.text} />}
-                        </View>
-                        <View style={styles.menuTextContainer}>
-                            <Text style={[styles.menuTitle, { color: theme.colors.text }]}>Appearance</Text>
-                            <Text style={[styles.menuSubtitle, { color: theme.colors.textSecondary }]}>
-                                {themeMode.charAt(0).toUpperCase() + themeMode.slice(1)} Mode
-                            </Text>
-                        </View>
-                        <ChevronRight size={20} color={theme.colors.textSecondary} />
-                    </TouchableOpacity>
-
-                    <MenuLink
-                        title="App Settings"
-                        icon={Settings}
-                        onPress={() => { }}
-                    />
-                </View>
-
-                {/* Logout Button */}
-                <View style={[styles.sectionContainer, { backgroundColor: theme.colors.background, marginBottom: 40 }]}>
-                    <TouchableOpacity style={styles.logoutRow} onPress={handleLogout}>
                         <LogOut size={20} color={theme.colors.error} />
                         <Text style={[styles.logoutText, { color: theme.colors.error }]}>Log Out</Text>
                     </TouchableOpacity>
@@ -427,5 +500,26 @@ const styles = StyleSheet.create({
         fontFamily: Fonts.regular,
         marginTop: 8,
         marginBottom: 16,
+    },
+
+    // Legacy Styles
+    legacyOrderItem: {
+        padding: 16,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    legacyOrderTitle: {
+        fontSize: 16,
+        fontWeight: '500',
+        marginBottom: 4,
+    },
+    legacyOrderDate: {
+        fontSize: 12,
+    },
+    legacyOrderStatus: {
+        fontSize: 14,
+        fontWeight: '600',
     },
 });

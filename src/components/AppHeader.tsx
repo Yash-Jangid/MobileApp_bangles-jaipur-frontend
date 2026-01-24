@@ -32,11 +32,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         <>
             <StatusBar
                 barStyle={isDark ? 'light-content' : 'dark-content'}
-                backgroundColor={theme.colors.headerBackground}
+                backgroundColor={theme.colors.surface}
             />
             <SafeAreaView
                 style={[styles.container, {
-                    backgroundColor: theme.colors.headerBackground,
+                    backgroundColor: theme.colors.surface,
                     borderBottomColor: theme.colors.border,
                 }]}
                 edges={['top']}
@@ -58,7 +58,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                                 onPress={onWishlistPress}
                                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                             >
-                                <Heart size={24} color={theme.colors.headerText} />
+                                <Heart size={24} color={theme.colors.textPrimary} />
                             </TouchableOpacity>
                         )}
                         {showProfile && (
@@ -67,7 +67,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                                 onPress={onProfilePress}
                                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                             >
-                                <User size={24} color={theme.colors.headerText} />
+                                <User size={24} color={theme.colors.textPrimary} />
                             </TouchableOpacity>
                         )}
                     </View>

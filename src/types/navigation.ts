@@ -9,6 +9,7 @@ export type RootStackParamList = {
   // Shop
   ProductDetails: { productId: string };
   CategoryProducts: { categoryId: string; categoryName: string };
+  Collections: { categoryId?: string; maxPrice?: number };
 
   // Cart & Checkout
   Cart: undefined;
@@ -29,7 +30,7 @@ export type RootStackParamList = {
 
 export type TabParamList = {
   Home: undefined;
-  Collections: undefined;
+  Collections: { categoryId?: string; maxPrice?: number };
   Cart: undefined;
   Profile: undefined;
 };

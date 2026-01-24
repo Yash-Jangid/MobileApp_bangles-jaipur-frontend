@@ -1,6 +1,6 @@
 export const API_CONFIG = {
-    BASE_URL: 'https://bangles-jaipur-backend.onrender.com',
-    // BASE_URL: 'http://localhost:3000',
+    // BASE_URL: 'https://bangles-jaipur-backend.onrender.com',
+    BASE_URL: 'http://10.0.2.2:3000',
 
     // API Version
     VERSION: 'v1',
@@ -78,6 +78,7 @@ export const getApiUrl = (endpoint: string): string => {
 export const HTTP_STATUS = {
     OK: 200,
     CREATED: 201,
+    NO_CONTENT: 204,
     BAD_REQUEST: 400,
     UNAUTHORIZED: 401,
     FORBIDDEN: 403,

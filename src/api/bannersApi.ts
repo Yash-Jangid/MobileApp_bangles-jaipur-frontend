@@ -12,6 +12,7 @@ export interface Banner {
     link?: string;
     createdAt: string;
     updatedAt: string;
+    adText?: string;
 }
 
 /**

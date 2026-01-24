@@ -12,31 +12,43 @@ import {
   FlatList,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { AppHeader } from '../components/AppHeader';
-import { Colors } from '../common/colors';
-import { colors } from '../theme/colors';
-import { Fonts } from '../common/fonts';
+import { ThemeHeader } from '../components/ThemeHeader';
+import { ProductCard } from '../components/ProductCard';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchFeaturedProducts, fetchCategories } from '../store/slices/productsSlice';
 import { fetchBanners } from '../store/slices/bannersSlice';
 import { useTheme } from '../theme/ThemeContext';
+import { Product } from '../types/product';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../types/navigation';
+import { getPageConfig } from '../api/pagesApi';
 
 const { width } = Dimensions.get('window');
 
-export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const { theme } = useTheme();
+type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Main'>;
+
+export const HomeScreen: React.FC<{ navigation: HomeScreenNavigationProp }> = ({ navigation }) => {
+  const { theme, setThemeId, themeId } = useTheme();
   const dispatch = useAppDispatch();
   const { featuredProducts, categories, loading } = useAppSelector((state) => state.products);
   const { banners, loading: bannersLoading } = useAppSelector((state) => state.banners);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const flatListRef = React.useRef<FlatList>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [pageConfig, setPageConfig] = useState<Record<string, any>>({});
 
   useEffect(() => {
     loadHomeData();
+    loadPageConfig();
   }, [dispatch]);
 
-  // Auto-scroll carousel
+  const loadPageConfig = async () => {
+    const config = await getPageConfig('home');
+    if (config) {
+      setPageConfig(config);
+    }
+  };
+
   useEffect(() => {
     if (banners.length === 0) return;
 
@@ -52,46 +64,59 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   }, [banners]);
 
   const loadHomeData = async () => {
-    try {
-      await Promise.all([
-        dispatch(fetchBanners()),
-        dispatch(fetchFeaturedProducts(10)),
-        dispatch(fetchCategories()),
-      ]);
-    } catch (error) {
-      console.error('Error loading home data:', error);
-    }
+    await Promise.all([
+      dispatch(fetchBanners()),
+      dispatch(fetchFeaturedProducts(10)), // Load more for grid
+      dispatch(fetchCategories()),
+    ]);
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
     await loadHomeData();
+    await loadPageConfig();
     setRefreshing(false);
   };
 
-  const navigateToCategory = (categoryId: string) => {
-    navigation.navigate('Collections', { categoryId });
-  };
+  // --- Render Sections ---
 
-  const navigateToProductDetail = (productSlug: string) => {
-    navigation.navigate('ProductDetails', { slug: productSlug });
-  };
+  const renderHeader = () => (
+    <ThemeHeader
+      title={pageConfig.headerTitle || (themeId === 'white-shine-jewelry' ? 'ZERAKI' : 'Jaipur Bangles')}
+      onSearchPress={() => { }}
+      onCartPress={() => navigation.navigate('Cart')}
+      onMenuPress={() => navigation.navigate('Collections', {})}
+      onProfilePress={() => navigation.navigate('Profile')}
+    />
+  );
+
+  // Temp Debug Control to switch themes
+  const renderThemeSwitcher = () => (
+    <View style={{ padding: 10, flexDirection: 'row', justifyContent: 'center', gap: 10 }}>
+      <TouchableOpacity
+        onPress={() => setThemeId('midnight-shine')}
+        style={{ padding: 8, backgroundColor: themeId === 'midnight-shine' ? theme.colors.primary : '#ccc', borderRadius: 4 }}
+      >
+        <Text style={{ color: '#fff' }}>Old Theme</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => setThemeId('white-shine-jewelry')}
+        style={{ padding: 8, backgroundColor: themeId === 'white-shine-jewelry' ? theme.colors.primary : '#ccc', borderRadius: 4 }}
+      >
+        <Text style={{ color: '#fff' }}>Zeraki Theme</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   const renderWelcomeSection = () => {
-    if (bannersLoading) {
-      return (
-        <View style={[styles.bannerContainer, { justifyContent: 'center', alignItems: 'center' }]}>
-          <ActivityIndicator size="large" color={colors.primary.main} />
-        </View>
-      );
-    }
-
-    if (banners.length === 0) {
-      return null;
-    }
+    if (bannersLoading) return <ActivityIndicator size="large" color={theme.colors.primary} />;
+    if (banners.length === 0) return null;
 
     return (
       <View style={styles.bannerContainer}>
+        {banners[currentBannerIndex].adText && <View style={styles.adContainer}>
+          <Text style={styles.adText}>{banners[currentBannerIndex].adText}</Text>
+        </View>}
         <FlatList
           ref={flatListRef}
           data={banners}
@@ -104,16 +129,9 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             setCurrentBannerIndex(index);
           }}
           renderItem={({ item }) => (
-            <LinearGradient
-              colors={[colors.primary.main, colors.secondary.main]}
-              style={styles.welcomeSection}
-            >
-              <Image source={{ uri: item.imageUrl }} style={styles.bannerImage} />
-              <View style={styles.bannerOverlay}>
-                <Text style={styles.bannerTitle}>{item.title}</Text>
-                <Text style={styles.bannerSubtitle}>{item.subtitle}</Text>
-              </View>
-            </LinearGradient>
+            <View style={styles.welcomeSection}>
+              <Image source={{ uri: item.imageUrl }} style={styles.bannerImage} resizeMode="cover" />
+            </View>
           )}
         />
         <View style={styles.paginationContainer}>
@@ -122,7 +140,7 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               key={index}
               style={[
                 styles.paginationDot,
-                currentBannerIndex === index && styles.paginationDotActive,
+                { backgroundColor: currentBannerIndex === index ? theme.colors.primary : 'rgba(255,255,255,0.5)' }
               ]}
             />
           ))}
@@ -131,150 +149,145 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     );
   };
 
-  const priceRanges = [
-    { id: '1', label: 'Under ₹100', maxPrice: 100 },
-    { id: '2', label: 'Under ₹500', maxPrice: 500 },
-    { id: '3', label: 'Under ₹1000', maxPrice: 1000 },
-    { id: '4', label: 'Under ₹2000', maxPrice: 2000 },
-    { id: '5', label: 'Under ₹5000', maxPrice: 5000 },
-  ];
-
-  const renderShopByPrice = () => (
-    <View style={styles.shopByPriceContainer}>
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Shop by Price</Text>
-      </View>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.priceScroll}>
-        {priceRanges.map((range) => (
-          <View key={range.id} style={styles.priceContainer}>
+  const renderCategories = () => (
+    <View style={[styles.categoriesContainer, { backgroundColor: theme.colors.background }]}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
+        {categories.map((category) => (
+          <View key={category.id} style={styles.categoryContainer}>
             <TouchableOpacity
-              style={[styles.priceCircle, { backgroundColor: theme.colors.card }]}
-              onPress={() => navigation.navigate('Collections', { maxPrice: range.maxPrice })}
+              style={[styles.categoryCircle, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderWidth: 1 }]}
+              onPress={() => navigation.navigate('Collections', { categoryId: category.id })}
             >
-              <Text style={[styles.priceLabel, { color: theme.colors.primary }]}>{range.label}</Text>
+              <Image
+                source={{ uri: category.imageUrl || 'https://via.placeholder.com/80?text=Cat' }}
+                style={styles.categoryImage}
+              />
             </TouchableOpacity>
+            <Text style={[styles.categoryTitle, { color: theme.colors.textPrimary }]}>{category.name}</Text>
           </View>
         ))}
       </ScrollView>
     </View>
   );
 
-  const renderAdvertisement = () => (
-    <View style={styles.advertisementContainer}>
-      <TouchableOpacity
-        style={[styles.adBanner, { backgroundColor: theme.colors.card }]}
-        onPress={() => { }}
-      >
-        <LinearGradient
-          colors={['#FF3E6C', '#FF63A5']}
-          style={styles.adGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        >
-          <Text style={styles.adTitle}>MEGA SALE</Text>
-          <Text style={styles.adSubtitle}>Up to 70% OFF on all bangles</Text>
-          <Text style={styles.adCTA}>Shop Now →</Text>
-        </LinearGradient>
-      </TouchableOpacity>
-    </View>
-  );
+  const renderShopByPrice = () => {
+    if (!theme.layout.showLegacySections) return null;
 
+    const priceRanges = [
+      { id: '1', label: 'Under ₹100', maxPrice: 100 },
+      { id: '2', label: 'Under ₹500', maxPrice: 500 },
+      { id: '3', label: 'Under ₹1000', maxPrice: 1000 },
+      { id: '4', label: 'Under ₹2000', maxPrice: 2000 },
+      { id: '5', label: 'Under ₹5000', maxPrice: 5000 },
+    ];
 
-  const renderCategories = () => (
-    <View style={styles.categoriesContainer}>
-      {/* <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Shop by Category</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Collections')}>
-          <Text style={styles.seeAllText}>See All</Text>
-        </TouchableOpacity>
-      </View> */}
-
-      {loading.categories ? (
-        <ActivityIndicator size="small" color={colors.primary.main} />
-      ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
-          {categories.map((category) => (
-            <View key={category.id} style={styles.categoryContainer}>
+    return (
+      <View style={styles.shopByPriceContainer}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>Shop by Price</Text>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.priceScroll}>
+          {priceRanges.map((range) => (
+            <View key={range.id} style={styles.priceContainer}>
               <TouchableOpacity
-                style={styles.categoryCircle}
-                onPress={() => navigateToCategory(category.id)}
+                style={[styles.priceCircle, { backgroundColor: theme.colors.surface }]}
+                onPress={() => navigation.navigate('Collections', { maxPrice: range.maxPrice })}
               >
-                <Image
-                  source={{ uri: category.imageUrl || 'https://via.placeholder.com/80/D4AF37/FFFFFF?text=Category' }}
-                  style={styles.categoryImage}
-                />
+                <Text style={[styles.priceLabel, { color: theme.colors.primary }]}>
+                  {range.label}
+                </Text>
               </TouchableOpacity>
-              <Text style={[styles.categoryTitle, { color: theme.colors.text }]}>{category.name}</Text>
             </View>
           ))}
         </ScrollView>
-      )}
-    </View>
-  );
+      </View>
+    );
+  };
 
-  const renderFeaturedProducts = () => (
-    <View style={styles.featuredCoursesContainer}>
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Featured Bangles</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Collections')}>
-          <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>See All</Text>
+  const renderAdvertisement = () => {
+    if (!theme.layout.showLegacySections) return null;
+
+    return (
+      <View style={styles.advertisementContainer}>
+        <TouchableOpacity
+          style={[styles.adBanner, { backgroundColor: theme.colors.surface }]}
+          onPress={() => { }}
+        >
+          <LinearGradient
+            colors={[theme.colors.secondary, theme.colors.secondary]}
+            style={styles.adGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Text style={[styles.adTitle, { color: '#FFF' }]}>MEGA SALE</Text>
+            <Text style={[styles.adSubtitle, { color: '#FFF' }]}>Up to 70% OFF on all bangles</Text>
+            <Text style={[styles.adCTA, { color: '#FFF' }]}>Shop Now →</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
+    );
+  };
 
-      {loading.featuredProducts ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary.main} />
-        </View>
-      ) : !featuredProducts || featuredProducts.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>💍</Text>
-          <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>No bangles available</Text>
-          <Text style={[styles.emptySubtitle, { color: theme.colors.textSecondary }]}>
-            Check back later for new collections
+
+  const renderFeaturedProducts = () => {
+    if (loading.featuredProducts) return <ActivityIndicator color={theme.colors.primary} />;
+
+    return (
+      <View style={[styles.featuredCoursesContainer, { backgroundColor: theme.colors.background }]}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
+            {pageConfig.featuredSectionTitle || 'Collection'}
           </Text>
         </View>
-      ) : (
+
         <FlatList
-          data={featuredProducts.slice(0, 6)}
+          data={featuredProducts}
+          keyExtractor={(item: any) => item.id}
           numColumns={2}
           scrollEnabled={false}
-          keyExtractor={(item) => item.id}
-          columnWrapperStyle={styles.productRow}
-          renderItem={({ item: product }) => (
-            <TouchableOpacity
-              style={[styles.courseCard, { backgroundColor: theme.colors.card }]}
-              onPress={() => navigateToProductDetail(product.slug)}
-            >
-              <Image
-                source={{ uri: product.images[0]?.imageUrl || 'https://via.placeholder.com/150' }}
-                style={styles.courseImage}
+          columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 4 }}
+          renderItem={({ item }: { item: any }) => {
+            const discount = parseFloat(item.discountPercentage || '0');
+            const dynamicBadge = item.offerBadge
+              || (discount > 0 ? `${Math.round(discount)}% OFF` : undefined);
+
+            const productData: Product = {
+              id: item.id,
+              name: item.name || item.title,
+              slug: item.slug,
+              description: item.description || '',
+              categoryId: item.categoryId || '',
+              mrp: item.mrp || (item.originalPrice ? item.originalPrice.toString() : '0'),
+              sellingPrice: item.sellingPrice ? item.sellingPrice.toString() : (item.price ? item.price.toString() : '0'),
+              discountPercentage: item.discountPercentage ? item.discountPercentage.toString() : '0',
+              stockQuantity: item.stockQuantity || item.stock || 0,
+              lowStockThreshold: item.lowStockThreshold || 0,
+              sku: item.sku || '',
+              isFeatured: item.isFeatured || false,
+              isActive: item.isActive || true,
+              images: item.images && Array.isArray(item.images) ? item.images : (item.image ? [{ imageUrl: item.image, isPrimary: true }] : []),
+              offerBadge: dynamicBadge,
+              isOutofStock: item.isOutofStock || (item.stockQuantity !== undefined && item.stockQuantity <= 0),
+              ...item
+            };
+
+            return (
+              <ProductCard
+                product={productData}
+                onPress={() => navigation.navigate('ProductDetails', { productId: item.id })}
+                onAddToCart={() => { }} // TODO: Add to cart
+                onToggleWishlist={() => { }} // TODO: Toggle wishlist
               />
-              <View style={styles.courseContent}>
-                <Text style={[styles.courseTitle, { color: theme.colors.text }]} numberOfLines={2}>
-                  {product.name}
-                </Text>
-                <Text style={[styles.courseInstructor, { color: theme.colors.textSecondary }]} numberOfLines={1}>{product.specifications?.material || 'Premium Material'}</Text>
-                <View style={styles.courseStats}>
-                  <Text style={[styles.courseRating, { color: theme.colors.textSecondary }]}>⭐ 4.8</Text>
-                  <Text style={[styles.coursePrice, { color: theme.colors.primary }]}>₹{product.sellingPrice}</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          )}
+            );
+          }}
         />
-      )}
-    </View>
-  );
+      </View>
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <AppHeader
-        showWishlist={true}
-        showProfile={true}
-        onWishlistPress={() => navigation.navigate('Wishlist')}
-        onProfilePress={() => navigation.navigate('Profile')}
-      />
+      {renderHeader()}
 
       <ScrollView
         style={{ backgroundColor: theme.colors.background }}
@@ -283,12 +296,13 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#D4AF37']}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
           />
         }
       >
-        {renderCategories()}
         {renderWelcomeSection()}
+        {renderCategories()}
         {renderShopByPrice()}
         {renderAdvertisement()}
         {renderFeaturedProducts()}
@@ -300,231 +314,88 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
-  },
-  scrollView: {
-    flex: 1,
   },
   bannerContainer: {
     width: width,
-    height: 250,
+    height: 460, // Total height including ad
+    position: 'relative',
+  },
+  adContainer: {
+    width: '100%',
+    paddingVertical: 8,
+    backgroundColor: '#FFE5E5', // Light red background for visibility
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10, // Ensure it sits on top if using absolute, but here we stack
+  },
+  adText: {
+    color: '#D32F2F',
+    fontSize: 14,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
   welcomeSection: {
     width: width,
-    height: 250,
-    position: 'relative',
+    // height: 220,
   },
   bannerImage: {
     width: '100%',
     height: '100%',
-    position: 'absolute',
-    opacity: 0.3,
-  },
-  bannerOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  bannerTitle: {
-    fontSize: 32,
-    fontFamily: Fonts.bold,
-    color: Colors.textLight,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  bannerSubtitle: {
-    fontSize: 18,
-    fontFamily: Fonts.semiBold,
-    color: Colors.textLight,
-    textAlign: 'center',
   },
   paginationContainer: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 10,
     left: 0,
     right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
   },
   paginationDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  paginationDotActive: {
-    backgroundColor: Colors.textLight,
-    width: 24,
-  },
-  quickActionsContainer: {
-    padding: 20,
-  },
-  sectionTitle: {
-    fontSize: Fonts.size.xl,
-    fontFamily: Fonts.semiBold,
-    color: Colors.textPrimary,
-    marginBottom: 16,
-  },
-  quickActionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  quickActionItem: {
-    width: (width - 60) / 2,
-    backgroundColor: Colors.card,
-    padding: 20,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 16,
-    elevation: 2,
-    shadowColor: Colors.textPrimary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  quickActionIcon: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  quickActionText: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.medium,
-    color: Colors.textPrimary,
-    textAlign: 'center',
   },
   categoriesContainer: {
-    padding: 20,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  seeAllText: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.medium,
-    color: Colors.primary,
-    textAlign: 'center',
+    paddingVertical: 16,
   },
   categoriesScroll: {
-    marginHorizontal: -4,
+    paddingHorizontal: 12,
   },
   categoryContainer: {
     alignItems: 'center',
     marginHorizontal: 8,
-    width: 80,
+    width: 70, // Smaller circles
   },
   categoryCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     overflow: 'hidden',
-    elevation: 3,
-    shadowColor: Colors.textPrimary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    backgroundColor: Colors.card,
+    marginBottom: 6,
   },
   categoryImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
   },
   categoryTitle: {
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.medium,
-    color: Colors.textPrimary,
+    fontSize: 12,
+    fontWeight: '500',
     textAlign: 'center',
-    marginTop: 8,
-    maxWidth: 80,
   },
   featuredCoursesContainer: {
-    padding: 20,
-  },
-  productRow: {
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  courseCard: {
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    flex: 1,
-    marginHorizontal: 6,
-    maxWidth: '48%',
-    elevation: 2,
-    shadowColor: Colors.textPrimary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    overflow: 'hidden',
-  },
-  courseImage: {
-    width: '100%',
-    height: 150,
-    resizeMode: 'cover',
-  },
-  courseContent: {
     padding: 16,
   },
-  courseTitle: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.semiBold,
-    color: Colors.textPrimary,
-    marginBottom: 4,
-  },
-  courseInstructor: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.regular,
-    color: Colors.textSecondary,
-    marginBottom: 12,
-  },
-  courseStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  courseRating: {
-    fontSize: Fonts.size.sm,
-    fontFamily: Fonts.medium,
-    color: Colors.textSecondary,
-  },
-  coursePrice: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.bold,
-    color: Colors.primary,
-  },
-  loadingContainer: {
-    padding: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    padding: 40,
-  },
-  emptyIcon: {
-    fontSize: 60,
+  sectionHeader: {
     marginBottom: 16,
+    alignItems: 'center', // Centered title for Zeraki
   },
-  emptyTitle: {
-    fontSize: Fonts.size.lg,
-    fontFamily: Fonts.semiBold,
-    color: Colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: 8,
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textTransform: 'uppercase', // Zeraki style
+    letterSpacing: 1,
   },
-  emptySubtitle: {
-    fontSize: Fonts.size.md,
-    fontFamily: Fonts.regular,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-  // Shop by Price Styles
   shopByPriceContainer: {
     paddingVertical: 20,
     paddingHorizontal: 20,
@@ -543,16 +414,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 3,
-    shadowColor: Colors.textPrimary,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
   },
   priceLabel: {
-    fontSize: Fonts.size.xs,
-    fontFamily: Fonts.bold,
+    fontSize: 12,
+    fontWeight: 'bold',
   },
-  // Advertisement Styles
   advertisementContainer: {
     paddingHorizontal: 20,
     paddingVertical: 16,
@@ -574,22 +444,19 @@ const styles = StyleSheet.create({
   },
   adTitle: {
     fontSize: 28,
-    fontFamily: Fonts.bold,
-    color: Colors.textLight,
+    fontWeight: 'bold',
     marginBottom: 8,
     letterSpacing: 1,
   },
   adSubtitle: {
     fontSize: 16,
-    fontFamily: Fonts.medium,
-    color: Colors.textLight,
+    fontWeight: '500',
     marginBottom: 12,
     textAlign: 'center',
   },
   adCTA: {
     fontSize: 14,
-    fontFamily: Fonts.semiBold,
-    color: Colors.textLight,
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
 });

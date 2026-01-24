@@ -1,0 +1,24 @@
+
+// Workaround for "No matching variant ... AgpVersionAttr" errors
+import com.android.build.api.attributes.AgpVersionAttr
+import org.gradle.api.attributes.AttributeCompatibilityRule
+import org.gradle.api.attributes.CompatibilityCheckDetails
+
+class AgpVersionCompatibilityRule implements AttributeCompatibilityRule<AgpVersionAttr> {
+    @Override
+    void execute(CompatibilityCheckDetails<AgpVersionAttr> details) {
+        // Accept any AGP version from the producer
+        details.compatible()
+    }
+}
+
+// Apply to all configurations in the app project (implicitly via subprojects or root)
+subprojects {
+    configurations.all {
+        attributesSchema {
+            attribute(AgpVersionAttr.ATTRIBUTE) {
+                compatibilityRules.add(AgpVersionCompatibilityRule)
+            }
+        }
+    }
+}

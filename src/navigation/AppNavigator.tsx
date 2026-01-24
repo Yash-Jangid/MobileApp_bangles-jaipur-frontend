@@ -5,7 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { enableScreens } from 'react-native-screens';
 import 'react-native-gesture-handler';
 import { useAppSelector } from '../store/hooks';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Home, Grid, ShoppingCart, User } from 'lucide-react-native';
 
 // Enable screens for better performance
 enableScreens();
@@ -37,12 +37,23 @@ const MainTabNavigator = () => {
 
   return (
     <Tab.Navigator
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
-          display: 'none',
+          display: theme.layout.showBottomTabs ? 'flex' : 'none',
+          backgroundColor: theme.colors.surface,
+          borderTopColor: theme.colors.border,
+          height: theme.layout.showBottomTabs ? (Platform.OS === 'android' ? 60 : 80) : 0,
+          paddingBottom: theme.layout.showBottomTabs ? (Platform.OS === 'android' ? 8 : 20) : 0,
+          borderTopWidth: theme.layout.showBottomTabs ? 1 : 0, // Ensure border is hidden too
         },
-      }}
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textSecondary,
+        tabBarLabelStyle: {
+          fontFamily: theme.typography.caption.fontFamily,
+          fontSize: 10,
+        }
+      })}
     >
       <Tab.Screen
         name="Home"
@@ -50,7 +61,7 @@ const MainTabNavigator = () => {
         options={{
           tabBarLabel: 'Home',
           tabBarIcon: ({ focused, color }) => (
-            <Text style={{ fontSize: 24 }}>🏠</Text>
+            <Home size={24} color={color} fill={focused ? color : 'none'} />
           ),
         }}
       />
@@ -60,7 +71,7 @@ const MainTabNavigator = () => {
         options={{
           tabBarLabel: 'Collections',
           tabBarIcon: ({ focused, color }) => (
-            <Text style={{ fontSize: 24 }}>💎</Text>
+            <Grid size={24} color={color} fill={focused ? color : 'none'} />
           ),
         }}
       />
@@ -70,7 +81,7 @@ const MainTabNavigator = () => {
         options={{
           tabBarLabel: 'Cart',
           tabBarIcon: ({ focused, color }) => (
-            <Text style={{ fontSize: 24 }}>🛒</Text>
+            <ShoppingCart size={24} color={color} fill={focused ? color : 'none'} />
           ),
         }}
       />
@@ -80,7 +91,7 @@ const MainTabNavigator = () => {
         options={{
           tabBarLabel: 'Account',
           tabBarIcon: ({ focused, color }) => (
-            <Text style={{ fontSize: 24 }}>👤</Text>
+            <User size={24} color={color} fill={focused ? color : 'none'} />
           ),
         }}
       />
