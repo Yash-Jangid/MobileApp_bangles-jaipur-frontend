@@ -106,7 +106,7 @@ export const getProductBySlug = async (slug: string): Promise<BackendResponse<Pr
 export const getProductById = async (id: string): Promise<BackendResponse<Product>> => {
   try {
     const response = await apiClient.get<BackendResponse<Product>>(
-      `${API_CONFIG.BASE_URL}/api/${API_CONFIG.VERSION}/products/${id}`
+      `${API_CONFIG.BASE_URL}/api/${API_CONFIG.VERSION}/products/id/${id}`
     );
     return response.data;
   } catch (error) {

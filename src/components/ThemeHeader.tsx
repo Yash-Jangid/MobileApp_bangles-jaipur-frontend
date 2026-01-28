@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar, Image } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import { View, TouchableOpacity, StyleSheet, Platform, StatusBar, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, ShoppingCart, User, Menu, Heart } from 'lucide-react-native';
+import { Search, ShoppingCart, User, Heart } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { Images } from '../common/images';
 
@@ -14,19 +15,11 @@ interface ThemeHeaderProps {
 }
 
 export const ThemeHeader: React.FC<ThemeHeaderProps> = ({
-    title,
     onSearchPress,
     onCartPress,
     onProfilePress,
-    onMenuPress
 }) => {
     const { theme } = useTheme();
-    // zeraki = logo left, icons right (modern)
-    // legacy (midnight) = logo left, wishlist/profile right (classic)
-    // Actually, both seem to be "Logo Left". The main difference is the ICONS and HEIGHT.
-
-    // We can say: isZeraki = use the Modern/Zeraki layout.
-    // !isZeraki (Midnight) = use the AppHeader (Legacy) layout.
     const isZeraki = theme.layout.headerStyle === 'logo-left-icons-right';
 
     return (
@@ -45,36 +38,26 @@ export const ThemeHeader: React.FC<ThemeHeaderProps> = ({
                     styles.container,
                     {
                         backgroundColor: theme.colors.surface,
-                        borderBottomColor: theme.colors.border,
-                        borderBottomWidth: 1,
-                        // Legacy AppHeader height was 80, Zeraki is 60/50.
-                        height: isZeraki ? (Platform.OS === 'android' ? 60 : 50) : 80,
+                        height: isZeraki ? (Platform.OS === 'android' ? 80 : 60) : 80,
                     }
                 ]}>
 
-                    {/* Left Section: Logo for BOTH now (Legacy had Logo too) */}
                     <View style={styles.leftSection}>
                         <Image
                             source={Images.logo}
                             style={[
                                 styles.logo,
-                                // Legacy logo was 60x60, Zeraki 60x60 (or 120x50 in style). 
-                                // Let's use standard logo style but adjust for legacy height if needed.
                                 !isZeraki && { width: 60, height: 60 }
                             ]}
                             resizeMode="contain"
+                            width={100}
+                            height={80}
                         />
                     </View>
-
-                    {/* Center Section: Empty for both (Zeraki has nothing, Legacy has nothing) 
-                        Note: Previous code had a Title for !isZeraki. We are REMOVING that to match AppHeader.
-                    */}
                     <View style={styles.centerSection} />
 
-                    {/* Right Section */}
                     <View style={styles.rightSection}>
                         {isZeraki ? (
-                            // Modern / Zeraki Icons
                             <>
                                 <TouchableOpacity onPress={onSearchPress} style={styles.iconButton}>
                                     <Search size={22} color={theme.colors.textPrimary} />
@@ -102,6 +85,14 @@ export const ThemeHeader: React.FC<ThemeHeaderProps> = ({
                             </>
                         )}
                     </View>
+
+                    {/* Bottom Shadow for Android */}
+                    {Platform.OS === 'android' && (
+                        <LinearGradient
+                            colors={['rgba(0,0,0,0.08)', 'transparent']}
+                            style={styles.bottomShadow}
+                        />
+                    )}
                 </View>
             </SafeAreaView>
         </>
@@ -110,22 +101,28 @@ export const ThemeHeader: React.FC<ThemeHeaderProps> = ({
 
 const styles = StyleSheet.create({
     safeArea: {
-        borderBottomWidth: 1,
+        zIndex: 100,
     },
     container: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 16,
-        height: Platform.OS === 'android' ? 60 : 50,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 3,
+            },
+            // elevation removed for Android custom shadow
+        }),
+        zIndex: 100,
     },
     leftSection: {
         flex: 1,
         alignItems: 'flex-start',
         justifyContent: 'center',
-    },
-    leftSectionZeraki: {
-        flex: 2,
     },
     centerSection: {
         flex: 2,
@@ -142,12 +139,15 @@ const styles = StyleSheet.create({
         width: 120,
         height: 50,
     },
-
-    centerTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-    },
     iconButton: {
         padding: 4,
+    },
+    bottomShadow: {
+        position: 'absolute',
+        bottom: -4,
+        left: 0,
+        right: 0,
+        height: 4,
+        zIndex: -1,
     }
 });

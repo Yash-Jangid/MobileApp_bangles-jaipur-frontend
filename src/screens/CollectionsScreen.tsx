@@ -23,7 +23,7 @@ const SPACING = 12;
 const CARD_WIDTH = (width - ((COLUMN_COUNT + 1) * SPACING)) / COLUMN_COUNT;
 
 export const CollectionsScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const dispatch = useAppDispatch();
   const { products, categories, loading } = useAppSelector((state) => state.products);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(route.params?.categoryId || null);
@@ -49,8 +49,8 @@ export const CollectionsScreen: React.FC<{ navigation: any; route: any }> = ({ n
     setSelectedCategory(categoryId);
   };
 
-  const navigateToProduct = (slug: string) => {
-    navigation.navigate('ProductDetails', { slug });
+  const navigateToProduct = (id: string) => {
+    navigation.navigate('ProductDetails', { productId: id });
   };
 
   const renderCategoryFilter = () => (
@@ -60,13 +60,13 @@ export const CollectionsScreen: React.FC<{ navigation: any; route: any }> = ({ n
           style={[
             styles.filterChip,
             selectedCategory === null && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
-            selectedCategory !== null && { backgroundColor: theme.colors.card, borderColor: theme.colors.border }
+            selectedCategory !== null && { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }
           ]}
           onPress={() => handleCategoryPress(null)}
         >
           <Text style={[
             styles.filterText,
-            { color: selectedCategory === null ? theme.colors.background : theme.colors.text }
+            { color: selectedCategory === null ? theme.colors.background : theme.colors.textPrimary }
           ]}>All</Text>
         </TouchableOpacity>
         {categories.map((category) => (
@@ -75,13 +75,13 @@ export const CollectionsScreen: React.FC<{ navigation: any; route: any }> = ({ n
             style={[
               styles.filterChip,
               selectedCategory === category.id && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
-              selectedCategory !== category.id && { backgroundColor: theme.colors.card, borderColor: theme.colors.border }
+              selectedCategory !== category.id && { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }
             ]}
             onPress={() => handleCategoryPress(category.id)}
           >
             <Text style={[
               styles.filterText,
-              { color: selectedCategory === category.id ? theme.colors.background : theme.colors.text }
+              { color: selectedCategory === category.id ? theme.colors.background : theme.colors.textPrimary }
             ]}>{category.name}</Text>
           </TouchableOpacity>
         ))}
@@ -91,8 +91,8 @@ export const CollectionsScreen: React.FC<{ navigation: any; route: any }> = ({ n
 
   const renderProductItem = ({ item }: { item: any }) => (
     <TouchableOpacity
-      style={[styles.productCard, { backgroundColor: theme.colors.card }]}
-      onPress={() => navigateToProduct(item.slug)}
+      style={[styles.productCard, { backgroundColor: theme.colors.surface }]}
+      onPress={() => navigateToProduct(item.id)}
       activeOpacity={0.9}
     >
       <View style={styles.imageContainer}>
@@ -101,12 +101,12 @@ export const CollectionsScreen: React.FC<{ navigation: any; route: any }> = ({ n
           style={styles.productImage}
         />
         <TouchableOpacity style={styles.wishlistButton}>
-          <Heart size={18} color={theme.colors.text} />
+          <Heart size={18} color={theme.colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
       <View style={styles.productInfo}>
-        <Text style={[styles.productName, { color: theme.colors.text }]} numberOfLines={1}>
+        <Text style={[styles.productName, { color: theme.colors.textPrimary }]} numberOfLines={1}>
           {item.name}
         </Text>
         <Text style={[styles.productDescription, { color: theme.colors.textSecondary }]} numberOfLines={1}>
@@ -114,7 +114,7 @@ export const CollectionsScreen: React.FC<{ navigation: any; route: any }> = ({ n
         </Text>
 
         <View style={styles.priceRow}>
-          <Text style={[styles.productPrice, { color: theme.colors.text }]}>
+          <Text style={[styles.productPrice, { color: theme.colors.textPrimary }]}>
             ₹{item.sellingPrice}
           </Text>
           {parseFloat(item.discountPercentage) > 0 && (
@@ -157,8 +157,8 @@ export const CollectionsScreen: React.FC<{ navigation: any; route: any }> = ({ n
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
-                No products found
+              <Text style={[styles.emptyTitle, { color: theme.colors.textPrimary }]}>
+                No products foundsss
               </Text>
               <Text style={[styles.emptySubtitle, { color: theme.colors.textSecondary }]}>
                 Try selecting a different category

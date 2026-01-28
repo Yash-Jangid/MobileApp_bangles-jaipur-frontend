@@ -53,7 +53,7 @@ themeRegistry.registerTheme({
     } as any,
     // Override header component for this theme only
     componentOverrides: {
-        header: 'WhiteShine',
+        Header: 'WhiteShine',
     },
     metadata: {
         description: 'Modern, clean design for jewelry e-commerce with custom header',

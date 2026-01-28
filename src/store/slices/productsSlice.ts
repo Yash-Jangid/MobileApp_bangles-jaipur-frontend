@@ -87,6 +87,18 @@ export const fetchProductBySlug = createAsyncThunk(
     }
 );
 
+export const fetchProductById = createAsyncThunk(
+    'products/fetchProductById',
+    async (id: string, { rejectWithValue }) => {
+        try {
+            const response = await productsApi.getProductById(id);
+            return response.data;
+        } catch (error: any) {
+            return rejectWithValue(error.message || 'Failed to fetch product details');
+        }
+    }
+);
+
 export const fetchCategories = createAsyncThunk(
     'products/fetchCategories',
     async (_, { rejectWithValue }) => {
@@ -159,6 +171,21 @@ const productsSlice = createSlice({
                 state.selectedProduct = action.payload;
             })
             .addCase(fetchProductBySlug.rejected, (state, action) => {
+                state.loading.productDetails = false;
+                state.error.productDetails = action.payload as string;
+            });
+
+        // Fetch product by ID
+        builder
+            .addCase(fetchProductById.pending, (state) => {
+                state.loading.productDetails = true;
+                state.error.productDetails = null;
+            })
+            .addCase(fetchProductById.fulfilled, (state, action) => {
+                state.loading.productDetails = false;
+                state.selectedProduct = action.payload;
+            })
+            .addCase(fetchProductById.rejected, (state, action) => {
                 state.loading.productDetails = false;
                 state.error.productDetails = action.payload as string;
             });

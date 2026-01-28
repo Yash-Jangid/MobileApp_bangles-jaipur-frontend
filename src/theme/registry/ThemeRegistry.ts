@@ -247,8 +247,8 @@ class ThemeRegistry {
         }
 
         // 3. Apply custom component overrides
-        if (options.components) {
-            baseComponents = { ...baseComponents, ...options.components };
+        if (options.componentOverrides) {
+            baseComponents = { ...baseComponents, ...options.componentOverrides };
         }
 
         // 4. Validate all required components are specified

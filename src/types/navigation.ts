@@ -17,6 +17,7 @@ export type RootStackParamList = {
   OrderSuccess: { orderId: string };
 
   // Orders
+  Orders: undefined;
   OrderHistory: undefined;
   OrderDetails: { orderId: string };
 
@@ -30,8 +31,9 @@ export type RootStackParamList = {
 
 export type TabParamList = {
   Home: undefined;
-  Collections: { categoryId?: string; maxPrice?: number };
+  Collections: undefined;
   Cart: undefined;
+  Wishlist: undefined;
   Profile: undefined;
 };
 

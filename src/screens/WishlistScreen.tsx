@@ -171,7 +171,7 @@ const WishlistScreen: React.FC = () => {
     if (isLoading && wishlistItems.length === 0) {
         return (
             <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-                <ThemeHeader />
+                {/* <ThemeHeader /> */}
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={theme.colors.primary} />
                 </View>
@@ -181,7 +181,7 @@ const WishlistScreen: React.FC = () => {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-            <ThemeHeader />
+            {/* <ThemeHeader /> */}
 
             {/* Header */}
             <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>

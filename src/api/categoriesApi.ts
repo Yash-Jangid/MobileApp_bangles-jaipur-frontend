@@ -8,7 +8,7 @@ export interface Category {
     name: string;
     slug: string;
     description: string | null;
-    imageUrl: string | null;
+    imageUrl: string;
     isActive: boolean;
     displayOrder: number;
     createdAt: string;

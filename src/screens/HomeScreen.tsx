@@ -78,8 +78,6 @@ export const HomeScreen: React.FC<{ navigation: HomeScreenNavigationProp }> = ({
     setRefreshing(false);
   };
 
-  // --- Render Sections ---
-
   const renderHeader = () => (
     <ThemeHeader
       title={pageConfig.headerTitle || (themeId === 'white-shine-jewelry' ? 'ZERAKI' : 'Jaipur Bangles')}
@@ -88,24 +86,6 @@ export const HomeScreen: React.FC<{ navigation: HomeScreenNavigationProp }> = ({
       onMenuPress={() => navigation.navigate('Collections', {})}
       onProfilePress={() => navigation.navigate('Profile')}
     />
-  );
-
-  // Temp Debug Control to switch themes
-  const renderThemeSwitcher = () => (
-    <View style={{ padding: 10, flexDirection: 'row', justifyContent: 'center', gap: 10 }}>
-      <TouchableOpacity
-        onPress={() => setThemeId('midnight-shine')}
-        style={{ padding: 8, backgroundColor: themeId === 'midnight-shine' ? theme.colors.primary : '#ccc', borderRadius: 4 }}
-      >
-        <Text style={{ color: '#fff' }}>Old Theme</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        onPress={() => setThemeId('white-shine-jewelry')}
-        style={{ padding: 8, backgroundColor: themeId === 'white-shine-jewelry' ? theme.colors.primary : '#ccc', borderRadius: 4 }}
-      >
-        <Text style={{ color: '#fff' }}>Zeraki Theme</Text>
-      </TouchableOpacity>
-    </View>
   );
 
   const renderWelcomeSection = () => {
@@ -128,6 +108,7 @@ export const HomeScreen: React.FC<{ navigation: HomeScreenNavigationProp }> = ({
             const index = Math.round(event.nativeEvent.contentOffset.x / width);
             setCurrentBannerIndex(index);
           }}
+
           renderItem={({ item }) => (
             <View style={styles.welcomeSection}>
               <Image source={{ uri: item.imageUrl }} style={styles.bannerImage} resizeMode="cover" />
@@ -159,7 +140,7 @@ export const HomeScreen: React.FC<{ navigation: HomeScreenNavigationProp }> = ({
               onPress={() => navigation.navigate('Collections', { categoryId: category.id })}
             >
               <Image
-                source={{ uri: category.imageUrl || 'https://via.placeholder.com/80?text=Cat' }}
+                source={{ uri: category.imageUrl }}
                 style={styles.categoryImage}
               />
             </TouchableOpacity>
@@ -275,8 +256,8 @@ export const HomeScreen: React.FC<{ navigation: HomeScreenNavigationProp }> = ({
               <ProductCard
                 product={productData}
                 onPress={() => navigation.navigate('ProductDetails', { productId: item.id })}
-                onAddToCart={() => { }} // TODO: Add to cart
-                onToggleWishlist={() => { }} // TODO: Toggle wishlist
+                onAddToCart={() => { }}
+                onToggleWishlist={() => { }}
               />
             );
           }}
@@ -317,16 +298,19 @@ const styles = StyleSheet.create({
   },
   bannerContainer: {
     width: width,
-    height: 460, // Total height including ad
+    height: 460,
     position: 'relative',
+    borderRadius: 20,
+    overflow: 'hidden',
+    paddingTop: 10,
   },
   adContainer: {
     width: '100%',
     paddingVertical: 8,
-    backgroundColor: '#FFE5E5', // Light red background for visibility
+    backgroundColor: '#FFE5E5',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 10, // Ensure it sits on top if using absolute, but here we stack
+    zIndex: 10,
   },
   adText: {
     color: '#D32F2F',
@@ -336,11 +320,13 @@ const styles = StyleSheet.create({
   },
   welcomeSection: {
     width: width,
+    paddingHorizontal: 10,
     // height: 220,
   },
   bannerImage: {
     width: '100%',
     height: '100%',
+    borderRadius: 12,
   },
   paginationContainer: {
     position: 'absolute',

@@ -120,6 +120,7 @@ export interface ThemeRegistrationOptions {
     name: string;
     family?: ThemeFamily;
     components?: PartialComponentVariantMap; // Can override specific components
+    componentOverrides?: PartialComponentVariantMap; // Preferred way to override components
     config: ThemeConfiguration;
     extends?: string; // Inherit from base theme
     metadata?: ThemeVariant['metadata'];

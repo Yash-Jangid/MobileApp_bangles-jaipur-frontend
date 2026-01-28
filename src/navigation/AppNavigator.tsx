@@ -5,7 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { enableScreens } from 'react-native-screens';
 import 'react-native-gesture-handler';
 import { useAppSelector } from '../store/hooks';
-import { Home, Grid, ShoppingCart, User } from 'lucide-react-native';
+import { Home, Grid, ShoppingCart, User, Heart } from 'lucide-react-native';
 
 // Enable screens for better performance
 enableScreens();
@@ -28,17 +28,27 @@ import { RootStackParamList, TabParamList } from '../types/navigation';
 import { Colors } from '../common/colors';
 import { colors } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
+import WishlistScreen from '../screens/WishlistScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
 const MainTabNavigator = () => {
-  const { theme } = useTheme();
+  const { theme, themeId } = useTheme();
+
+  // Check if white-shine-jewelry theme for custom tabs
+  const isWhiteShine = themeId === 'white-shine-jewelry';
 
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
+      screenOptions={{
         headerShown: false,
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textSecondary,
+        tabBarLabelStyle: {
+          fontFamily: theme.typography.caption.fontFamily,
+          fontSize: 10,
+        },
         tabBarStyle: {
           display: theme.layout.showBottomTabs ? 'flex' : 'none',
           backgroundColor: theme.colors.surface,
@@ -47,13 +57,7 @@ const MainTabNavigator = () => {
           paddingBottom: theme.layout.showBottomTabs ? (Platform.OS === 'android' ? 8 : 20) : 0,
           borderTopWidth: theme.layout.showBottomTabs ? 1 : 0, // Ensure border is hidden too
         },
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.textSecondary,
-        tabBarLabelStyle: {
-          fontFamily: theme.typography.caption.fontFamily,
-          fontSize: 10,
-        }
-      })}
+      }}
     >
       <Tab.Screen
         name="Home"
@@ -69,22 +73,40 @@ const MainTabNavigator = () => {
         name="Collections"
         component={CollectionsScreen}
         options={{
-          tabBarLabel: 'Collections',
+          tabBarLabel: isWhiteShine ? 'Categories' : 'Collections',
           tabBarIcon: ({ focused, color }) => (
             <Grid size={24} color={color} fill={focused ? color : 'none'} />
           ),
         }}
       />
-      <Tab.Screen
-        name="Cart"
-        component={CartScreen}
-        options={{
-          tabBarLabel: 'Cart',
-          tabBarIcon: ({ focused, color }) => (
-            <ShoppingCart size={24} color={color} fill={focused ? color : 'none'} />
-          ),
-        }}
-      />
+
+      {/* Show Wishlist for white-shine-jewelry, Cart for others */}
+      {
+        isWhiteShine ? (
+          <Tab.Screen
+            name="Wishlist"
+            component={WishlistScreen}
+            options={{
+              tabBarLabel: 'Wishlist',
+              tabBarIcon: ({ focused, color }) => (
+                <Heart size={24} color={color} fill={focused ? color : 'none'} />
+              ),
+            }}
+          />
+        ) : (
+          <Tab.Screen
+            name="Cart"
+            component={CartScreen}
+            options={{
+              tabBarLabel: 'Cart',
+              tabBarIcon: ({ focused, color }) => (
+                <ShoppingCart size={24} color={color} fill={focused ? color : 'none'} />
+              ),
+            }}
+          />
+        )
+      }
+
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
@@ -95,7 +117,7 @@ const MainTabNavigator = () => {
           ),
         }}
       />
-    </Tab.Navigator>
+    </Tab.Navigator >
   );
 };
 
@@ -116,6 +138,8 @@ export const AppNavigator = () => {
         {/* Auth Screens */}
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="SignUp" component={SignUpScreen} />
+
+        <Stack.Screen name="Cart" component={CartScreen} />
 
         {/* Main App */}
         <Stack.Screen name="Main" component={MainTabNavigator} />

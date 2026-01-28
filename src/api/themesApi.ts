@@ -22,6 +22,8 @@ export const getActiveTheme = async (): Promise<ThemeConfiguration | null> => {
             return null;
         }
 
+        console.log('Active theme:', response.data.config);
+
         return response.data.config;
     } catch (error) {
         console.warn('Failed to fetch active theme, falling back to local defaults', error);

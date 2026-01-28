@@ -17,7 +17,7 @@ import {
 import { CustomHeader } from '../components/CustomHeader';
 import { Fonts } from '../common/fonts';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { fetchProductBySlug, clearSelectedProduct } from '../store/slices/productsSlice';
+import { fetchProductById, clearSelectedProduct } from '../store/slices/productsSlice';
 import { addToCart } from '../store/slices/cartSlice';
 import { useTheme } from '../theme/ThemeContext';
 import { Heart, Share2, Star, ShoppingBag, Truck, RotateCcw, ShieldCheck } from 'lucide-react-native';
@@ -37,7 +37,7 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
   const dispatch = useAppDispatch();
   const { selectedProduct, loading, error } = useAppSelector((state) => state.products);
   const { actionLoading } = useAppSelector((state) => state.cart);
-  const slug = route?.params?.slug;
+  const productId = route?.params?.productId;
 
   const [selectedSize, setSelectedSize] = useState<string>('2.4');
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
@@ -45,13 +45,13 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
   const [isWishlisted, setIsWishlisted] = useState(false);
 
   useEffect(() => {
-    if (slug) {
-      dispatch(fetchProductBySlug(slug));
+    if (productId) {
+      dispatch(fetchProductById(productId));
     }
     return () => {
       dispatch(clearSelectedProduct());
     };
-  }, [dispatch, slug]);
+  }, [dispatch, productId]);
 
   const handleShare = async () => {
     if (!selectedProduct) return;
@@ -111,9 +111,10 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
   }
 
   if (error.productDetails || !selectedProduct) {
+    console.log(error.productDetails);
     return (
       <View style={[styles.errorContainer, { backgroundColor: theme.colors.background }]}>
-        <Text style={[styles.errorText, { color: theme.colors.text }]}>{error.productDetails || 'Product not found'}</Text>
+        <Text style={[styles.errorText, { color: theme.colors.textPrimary }]}>{error.productDetails || 'Product not found'}</Text>
         <TouchableOpacity
           style={[styles.backButton, { backgroundColor: theme.colors.primary }]}
           onPress={() => navigation.goBack()}
@@ -146,7 +147,7 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
         onBackPress={() => navigation.goBack()}
         rightComponent={
           <TouchableOpacity onPress={handleShare}>
-            <Share2 size={24} color={theme.colors.text} />
+            <Share2 size={24} color={theme.colors.textPrimary} />
           </TouchableOpacity>
         }
       />
@@ -197,13 +198,13 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
             <Text style={[styles.brandName, { color: theme.colors.textSecondary }]}>
               {specifications?.material || 'Premium Brand'}
             </Text>
-            <Text style={[styles.productTitle, { color: theme.colors.text }]}>{name}</Text>
+            <Text style={[styles.productTitle, { color: theme.colors.textPrimary }]}>{name}</Text>
           </View>
 
           {/* Pricing */}
           <View style={[styles.priceBlock, { borderBottomColor: theme.colors.border }]}>
             <View style={styles.priceRow}>
-              <Text style={[styles.sellingPrice, { color: theme.colors.text }]}>₹{sellingPrice}</Text>
+              <Text style={[styles.sellingPrice, { color: theme.colors.textPrimary }]}>₹{sellingPrice}</Text>
               {discount > 0 && (
                 <>
                   <Text style={[styles.mrp, { color: theme.colors.textSecondary }]}>MRP ₹{mrp}</Text>
@@ -217,7 +218,7 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
           {/* Size Selection */}
           <View style={[styles.selectionBlock, { borderBottomColor: theme.colors.border }]}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>SELECT SIZE</Text>
+              <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>SELECT SIZE</Text>
               <TouchableOpacity>
                 <Text style={[styles.sizeGuideText, { color: theme.colors.primary }]}>Size Chart</Text>
               </TouchableOpacity>
@@ -247,25 +248,24 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
           <View style={[styles.serviceBlock, { borderBottomColor: theme.colors.border }]}>
             <View style={styles.serviceItem}>
               <Truck size={20} color={theme.colors.textSecondary} />
-              <Text style={[styles.serviceText, { color: theme.colors.text }]}>Free Delivery</Text>
+              <Text style={[styles.serviceText, { color: theme.colors.textPrimary }]}>Free Delivery</Text>
             </View>
             <View style={styles.serviceItem}>
               <RotateCcw size={20} color={theme.colors.textSecondary} />
-              <Text style={[styles.serviceText, { color: theme.colors.text }]}>30 Days Return</Text>
+              <Text style={[styles.serviceText, { color: theme.colors.textPrimary }]}>30 Days Return</Text>
             </View>
             <View style={styles.serviceItem}>
               <ShieldCheck size={20} color={theme.colors.textSecondary} />
-              <Text style={[styles.serviceText, { color: theme.colors.text }]}>100% Original</Text>
+              <Text style={[styles.serviceText, { color: theme.colors.textPrimary }]}>100% Original</Text>
             </View>
           </View>
 
           {/* Product Description */}
           <View style={styles.descBlock}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>PRODUCT DETAILS</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>PRODUCT DETAILS</Text>
             <Text style={[styles.descriptionText, { color: theme.colors.textSecondary }]}>
               {description}
             </Text>
-            {/* Specs Table could go here */}
           </View>
 
           {/* Spacer for bottom bar */}
@@ -274,14 +274,14 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
       </ScrollView>
 
       {/* Sticky Bottom Action Bar */}
-      <View style={[styles.bottomBar, { backgroundColor: theme.colors.card, borderTopColor: theme.colors.border }]}>
+      <View style={[styles.bottomBar, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border }]}>
         <TouchableOpacity
           style={[styles.cartButton, { borderColor: theme.colors.border }]}
           onPress={handleAddToCart}
           disabled={actionLoading?.add}
         >
-          <ShoppingBag size={20} color={theme.colors.text} style={{ marginRight: 8 }} />
-          <Text style={[styles.cartButtonText, { color: theme.colors.text }]}>Add to Bag</Text>
+          <ShoppingBag size={20} color={theme.colors.textPrimary} style={{ marginRight: 8 }} />
+          <Text style={[styles.cartButtonText, { color: theme.colors.textPrimary }]}>Add to Bag</Text>
         </TouchableOpacity>
 
         <TouchableOpacity

@@ -10,8 +10,8 @@ const THEME_MODE_KEY = '@app_theme_mode';
 
 interface ThemeContextType {
     theme: ProcessedTheme;
-    themeMode: ThemeMode | 'auto'; // User preference
-    activeMode: ThemeMode; // Actual rendered mode
+    themeMode: ThemeMode | 'auto';
+    activeMode: ThemeMode;
     themeId: string;
     isLoading: boolean;
     toggleThemeMode: () => void;
