@@ -15,7 +15,14 @@ import { Fonts } from '../common/fonts';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchProducts, fetchCategories } from '../store/slices/productsSlice';
 import { useTheme } from '../theme/ThemeContext';
-import { Heart } from 'lucide-react-native';
+import { Heart, Search, ShoppingBag } from 'lucide-react-native';
+import {
+  addToWishlist,
+  removeFromWishlist,
+  selectWishlistItems,
+  fetchWishlist
+} from '../store/slices/wishlistSlice';
+import { CustomToast, ToastType } from '../components/CustomToast';
 
 const { width } = Dimensions.get('window');
 const COLUMN_COUNT = 2;
@@ -28,10 +35,26 @@ export const CollectionsScreen: React.FC<{ navigation: any; route: any }> = ({ n
   const { products, categories, loading } = useAppSelector((state) => state.products);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(route.params?.categoryId || null);
 
+  // Wishlist State
+  const wishlistItems = useAppSelector(selectWishlistItems);
+  const wishlistSet = React.useMemo(() => new Set(wishlistItems.map(item => item.productId)), [wishlistItems]);
+
+  // Toast State
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<ToastType>('default');
+
+  const showToast = (message: string, type: ToastType = 'default') => {
+    setToastMessage(message);
+    setToastType(type);
+    setToastVisible(true);
+  };
+
   useEffect(() => {
     if (categories.length === 0) {
       dispatch(fetchCategories());
     }
+    dispatch(fetchWishlist({}));
   }, [dispatch, categories.length]);
 
   useEffect(() => {
@@ -47,6 +70,20 @@ export const CollectionsScreen: React.FC<{ navigation: any; route: any }> = ({ n
 
   const handleCategoryPress = (categoryId: string | null) => {
     setSelectedCategory(categoryId);
+  };
+
+  const handleToggleWishlist = async (productId: string) => {
+    try {
+      if (wishlistSet.has(productId)) {
+        await dispatch(removeFromWishlist(productId)).unwrap();
+        showToast('Removed from wishlist', 'info');
+      } else {
+        await dispatch(addToWishlist(productId)).unwrap();
+        showToast('Added to wishlist', 'success');
+      }
+    } catch (error) {
+      showToast('Action failed', 'error');
+    }
   };
 
   const navigateToProduct = (id: string) => {
@@ -97,11 +134,18 @@ export const CollectionsScreen: React.FC<{ navigation: any; route: any }> = ({ n
     >
       <View style={styles.imageContainer}>
         <Image
-          source={{ uri: item.images[0]?.imageUrl || 'https://via.placeholder.com/300x400' }}
+          source={{ uri: item.images?.[0]?.imageUrl || 'https://via.placeholder.com/300x400' }}
           style={styles.productImage}
         />
-        <TouchableOpacity style={styles.wishlistButton}>
-          <Heart size={18} color={theme.colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.wishlistButton}
+          onPress={() => handleToggleWishlist(item.id)}
+        >
+          <Heart
+            size={18}
+            color={wishlistSet.has(item.id) ? theme.colors.error : theme.colors.textPrimary}
+            fill={wishlistSet.has(item.id) ? theme.colors.error : 'transparent'}
+          />
         </TouchableOpacity>
       </View>
 
@@ -167,6 +211,13 @@ export const CollectionsScreen: React.FC<{ navigation: any; route: any }> = ({ n
           }
         />
       )}
+
+      <CustomToast
+        visible={toastVisible}
+        message={toastMessage}
+        type={toastType}
+        onDismiss={() => setToastVisible(false)}
+      />
     </View>
   );
 };

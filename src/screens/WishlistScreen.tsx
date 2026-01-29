@@ -123,7 +123,12 @@ const WishlistScreen: React.FC = () => {
     );
 
     const renderItem = ({ item }: { item: WishlistItem }) => {
-        const product = item.product;
+        const product = item?.product;
+
+        if (!product) {
+            return null; // Don't render if product data is missing
+        }
+
         const imageUrl = product.images?.[0]?.imageUrl || '';
 
         return (

@@ -39,8 +39,8 @@ export const fetchWishlist = createAsyncThunk(
 export const addToWishlist = createAsyncThunk(
     'wishlist/addToWishlist',
     async (productId: string) => {
-        await wishlistApi.addToWishlist(productId);
-        return productId;
+        const response = await wishlistApi.addToWishlist(productId);
+        return response.data; // Return the new wishlist item
     }
 );
 
@@ -103,9 +103,14 @@ const wishlistSlice = createSlice({
             .addCase(addToWishlist.pending, (state) => {
                 state.isLoading = true;
             })
-            .addCase(addToWishlist.fulfilled, (state) => {
+            .addCase(addToWishlist.fulfilled, (state, action) => {
                 state.isLoading = false;
-                state.count += 1;
+                // Add the new item to the list if it doesn't already exist
+                if (action.payload && !state.items.find(item => item.id === action.payload.id)) {
+                    state.items.unshift(action.payload);
+                    state.count = state.items.length;
+                    state.total = state.items.length;
+                }
             })
             .addCase(addToWishlist.rejected, (state, action) => {
                 state.isLoading = false;
