@@ -12,6 +12,8 @@ enableScreens();
 
 import { LoginScreen } from '../screens/LoginScreen';
 import { SignUpScreen } from '../screens/SignUpScreen';
+import { LoginNewScreen } from '../screens/LoginNewScreen';
+import { SignUpNewScreen } from '../screens/SignUpNewScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { CollectionsScreen } from '../screens/CollectionsScreen';
 import { CartScreen } from '../screens/CartScreen';
@@ -22,13 +24,16 @@ import { OrdersScreen } from '../screens/OrdersScreen';
 import { OrderDetailsScreen } from '../screens/OrderDetailsScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import { WebViewScreen } from '../components/WebViewScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+import VerifyOTPScreen from '../screens/VerifyOTPScreen';
+import ResetPasswordScreen from '../screens/ResetPasswordScreen';
+import WishlistScreen from '../screens/WishlistScreen';
 
 // Types
 import { RootStackParamList, TabParamList } from '../types/navigation';
 import { Colors } from '../common/colors';
 import { colors } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
-import WishlistScreen from '../screens/WishlistScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -133,13 +138,19 @@ export const AppNavigator = () => {
           headerShown: false,
           gestureEnabled: true,
         }}
-        initialRouteName={(isAuthenticated && (token || accessToken)) || isGuestMode ? "Main" : "Login"}
+        initialRouteName={(isAuthenticated && (token || accessToken)) || isGuestMode ? "Main" : "LoginNew"}
       >
         {/* Auth Screens */}
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="SignUp" component={SignUpScreen} />
+        <Stack.Screen name="Login" component={LoginNewScreen} />
+        <Stack.Screen name="SignUp" component={SignUpNewScreen} />
+        <Stack.Screen name="LoginNew" component={LoginNewScreen} />
+        <Stack.Screen name="SignUpNew" component={SignUpNewScreen} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+        <Stack.Screen name="VerifyOTP" component={VerifyOTPScreen} />
+        <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
 
         <Stack.Screen name="Cart" component={CartScreen} />
+        <Stack.Screen name="Wishlist" component={WishlistScreen} />
 
         {/* Main App */}
         <Stack.Screen name="Main" component={MainTabNavigator} />

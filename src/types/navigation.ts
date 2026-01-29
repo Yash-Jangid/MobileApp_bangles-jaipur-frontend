@@ -2,6 +2,11 @@ export type RootStackParamList = {
   // Auth
   Login: undefined;
   SignUp: undefined;
+  LoginNew: undefined;
+  SignUpNew: undefined;
+  ForgotPassword: undefined;
+  VerifyOTP: { email: string };
+  ResetPassword: { email: string; otp: string };
 
   // Main Tab
   Main: undefined;
@@ -13,6 +18,7 @@ export type RootStackParamList = {
 
   // Cart & Checkout
   Cart: undefined;
+  Wishlist: undefined;
   Checkout: undefined;
   OrderSuccess: { orderId: string };
 

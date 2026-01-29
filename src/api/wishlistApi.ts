@@ -17,7 +17,7 @@ export interface WishlistItem {
         originalPrice: number;
         discount: number;
         stock: number;
-        images: Array<{ url: string }>;
+        images: Array<{ imageUrl: string; isPrimary: boolean; sortOrder: number }>;
         category: { name: string };
     };
     createdAt: string;

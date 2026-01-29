@@ -11,6 +11,7 @@ import { Fonts } from './src/common/fonts';
 import { store, persistor } from './src/store';
 import socialLoginService from './src/services/SocialLoginService';
 import { ThemeProvider } from './src/theme/ThemeContext';
+import { AuthListener } from './src/components/AuthListener';
 
 const LoadingScreen = () => (
   <View style={styles.loadingContainer}>
@@ -29,6 +30,7 @@ const App: React.FC = () => {
     <Provider store={store}>
       <PersistGate loading={<LoadingScreen />} persistor={persistor}>
         <ThemeProvider>
+          <AuthListener />
           <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaProvider>
               <AppNavigator />

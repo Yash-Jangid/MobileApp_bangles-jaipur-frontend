@@ -2,28 +2,29 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   Image,
   Dimensions,
   ActivityIndicator,
   Alert,
-  FlatList,
   NativeSyntheticEvent,
   NativeScrollEvent,
   Share,
 } from 'react-native';
+import { ScrollView, FlatList } from 'react-native-gesture-handler';
 import { CustomHeader } from '../components/CustomHeader';
 import { Fonts } from '../common/fonts';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchProductById, clearSelectedProduct } from '../store/slices/productsSlice';
 import { addToCart } from '../store/slices/cartSlice';
+import { addToWishlist, removeFromWishlist, selectWishlistItems, fetchWishlist } from '../store/slices/wishlistSlice';
 import { useTheme } from '../theme/ThemeContext';
 import { Heart, Share2, Star, ShoppingBag, Truck, RotateCcw, ShieldCheck } from 'lucide-react-native';
+import { CustomToast, ToastType } from '../components/CustomToast';
 
 const { width } = Dimensions.get('window');
-const ASPECT_RATIO = 4 / 5;
+const ASPECT_RATIO = 1.25; // 4:5 or 3:4 for premium look
 const IMAGE_HEIGHT = width * ASPECT_RATIO;
 
 // Bangle sizes
@@ -33,7 +34,7 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
   navigation,
   route
 }) => {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const dispatch = useAppDispatch();
   const { selectedProduct, loading, error } = useAppSelector((state) => state.products);
   const { actionLoading } = useAppSelector((state) => state.cart);
@@ -42,16 +43,52 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
   const [selectedSize, setSelectedSize] = useState<string>('2.4');
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [quantity, setQuantity] = useState<number>(1);
-  const [isWishlisted, setIsWishlisted] = useState(false);
+
+  // Wishlist Logic
+  const wishlistItems = useAppSelector(selectWishlistItems);
+  const isWishlisted = wishlistItems.some(item => item.productId === productId);
+
+  // Toast State
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastAction, setToastAction] = useState<{ label: string; onPress: () => void } | undefined>(undefined);
+  const [toastType, setToastType] = useState<ToastType>('default');
+
+  const showToast = (message: string, type: ToastType = 'default', action?: { label: string; onPress: () => void }) => {
+    setToastMessage(message);
+    setToastType(type);
+    setToastAction(action);
+    setToastVisible(true);
+  };
 
   useEffect(() => {
     if (productId) {
       dispatch(fetchProductById(productId));
+      dispatch(fetchWishlist({}));
     }
     return () => {
       dispatch(clearSelectedProduct());
     };
   }, [dispatch, productId]);
+
+  const handleToggleWishlist = async () => {
+    if (!productId) return;
+
+    try {
+      if (isWishlisted) {
+        await dispatch(removeFromWishlist(productId)).unwrap();
+        showToast('Removed from wishlist', 'info');
+      } else {
+        await dispatch(addToWishlist(productId)).unwrap();
+        showToast('Added to wishlist', 'success', {
+          label: 'VIEW',
+          onPress: () => navigation.navigate('Wishlist')
+        });
+      }
+    } catch (err) {
+      showToast('Action failed', 'error');
+    }
+  };
 
   const handleShare = async () => {
     if (!selectedProduct) return;
@@ -74,9 +111,13 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
         quantity,
         size: selectedSize
       })).unwrap();
-      Alert.alert('Success', 'Added to cart successfully');
+
+      showToast('Added to bag', 'success', {
+        label: 'VIEW BAG',
+        onPress: () => navigation.navigate('Cart')
+      });
     } catch (err) {
-      Alert.alert('Error', typeof err === 'string' ? err : 'Failed to add to cart');
+      showToast('Failed to add to bag', 'error');
     }
   };
 
@@ -95,12 +136,7 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
     }
   };
 
-  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const slideSize = event.nativeEvent.layoutMeasurement.width;
-    const index = event.nativeEvent.contentOffset.x / slideSize;
-    const roundIndex = Math.round(index);
-    setSelectedImageIndex(roundIndex);
-  };
+
 
   if (loading.productDetails) {
     return (
@@ -139,6 +175,8 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
     </View>
   );
 
+
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <CustomHeader
@@ -153,7 +191,6 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
       />
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Image Carousel */}
         <View style={styles.carouselContainer}>
           <FlatList
             data={displayImages}
@@ -161,15 +198,16 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-            keyExtractor={(item, index) => index.toString()}
-            style={styles.carousel}
+            onMomentumScrollEnd={(event) => {
+              const index = Math.round(event.nativeEvent.contentOffset.x / width);
+              setSelectedImageIndex(index);
+            }}
+            keyExtractor={(_, index) => index.toString()}
           />
 
           <TouchableOpacity
             style={styles.wishlistFloat}
-            onPress={() => setIsWishlisted(!isWishlisted)}
+            onPress={handleToggleWishlist}
           >
             <Heart
               size={24}
@@ -296,6 +334,18 @@ export const ProductDetailsScreen: React.FC<{ navigation: any; route: any }> = (
           )}
         </TouchableOpacity>
       </View>
+
+      <CustomToast
+        visible={toastVisible}
+        message={toastMessage}
+        type={toastType}
+        actionLabel={toastAction?.label}
+        onAction={() => {
+          toastAction?.onPress();
+          setToastVisible(false);
+        }}
+        onDismiss={() => setToastVisible(false)}
+      />
     </View>
   );
 };
@@ -335,6 +385,8 @@ const styles = StyleSheet.create({
   carouselContainer: {
     position: 'relative',
     height: IMAGE_HEIGHT,
+    width: width,
+    overflow: 'hidden',
   },
   carousel: {
     width: width,
@@ -365,6 +417,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 4,
   },
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
   paginationContainer: {
     position: 'absolute',
     bottom: 16,
@@ -372,11 +429,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
-  },
-  paginationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
   },
   detailsContainer: {
     padding: 16,

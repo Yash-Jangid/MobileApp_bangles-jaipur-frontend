@@ -105,3 +105,77 @@ export const logoutUser = async (): Promise<void> => {
         console.error('Logout error:', handleApiError(error));
     }
 };
+
+// Password Reset Types
+export interface ForgotPasswordRequest {
+    email: string;
+}
+
+export interface VerifyOtpRequest {
+    email: string;
+    otp: string;
+}
+
+export interface ResetPasswordWithOtpRequest {
+    email: string;
+    otp: string;
+    newPassword: string;
+}
+
+export interface ForgotPasswordResponse {
+    message: string;
+}
+
+export interface VerifyOtpResponse {
+    valid: boolean;
+    message: string;
+}
+
+export interface ResetPasswordResponse {
+    message: string;
+}
+
+/**
+ * Request password reset OTP
+ */
+export const forgotPassword = async (data: ForgotPasswordRequest): Promise<ForgotPasswordResponse> => {
+    try {
+        const response = await apiClient.post<ForgotPasswordResponse>(
+            '/auth/forgot-password',
+            data
+        );
+        return response.data;
+    } catch (error) {
+        throw new Error(handleApiError(error));
+    }
+};
+
+/**
+ * Verify OTP code
+ */
+export const verifyOtp = async (data: VerifyOtpRequest): Promise<VerifyOtpResponse> => {
+    try {
+        const response = await apiClient.post<VerifyOtpResponse>(
+            '/auth/verify-otp',
+            data
+        );
+        return response.data;
+    } catch (error) {
+        throw new Error(handleApiError(error));
+    }
+};
+
+/**
+ * Reset password with OTP
+ */
+export const resetPasswordWithOtp = async (data: ResetPasswordWithOtpRequest): Promise<ResetPasswordResponse> => {
+    try {
+        const response = await apiClient.post<ResetPasswordResponse>(
+            '/auth/reset-password',
+            data
+        );
+        return response.data;
+    } catch (error) {
+        throw new Error(handleApiError(error));
+    }
+};

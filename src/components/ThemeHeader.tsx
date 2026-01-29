@@ -1,10 +1,12 @@
 import React from 'react';
 import LinearGradient from 'react-native-linear-gradient';
-import { View, TouchableOpacity, StyleSheet, Platform, StatusBar, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, ShoppingCart, User, Heart } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { Images } from '../common/images';
+import { useAppSelector } from '../store/hooks';
+import { selectWishlistCount } from '../store/slices/wishlistSlice';
 
 interface ThemeHeaderProps {
     title?: string;
@@ -15,12 +17,29 @@ interface ThemeHeaderProps {
 }
 
 export const ThemeHeader: React.FC<ThemeHeaderProps> = ({
+    title,
     onSearchPress,
     onCartPress,
     onProfilePress,
+    onMenuPress,
 }) => {
     const { theme } = useTheme();
     const isZeraki = theme.layout.headerStyle === 'logo-left-icons-right';
+
+    // Redux Selectors for Badge Counts
+    const { totalItems: cartCount } = useAppSelector(state => state.cart);
+    const wishlistCount = useAppSelector(selectWishlistCount);
+
+    const renderBadge = (count: number) => {
+        if (count <= 0) return null;
+        return (
+            <View style={[styles.badge, { backgroundColor: theme.colors.error }]}>
+                <Text style={styles.badgeText}>
+                    {count > 9 ? '9+' : count}
+                </Text>
+            </View>
+        );
+    };
 
     return (
         <>
@@ -64,7 +83,10 @@ export const ThemeHeader: React.FC<ThemeHeaderProps> = ({
                                 </TouchableOpacity>
 
                                 <TouchableOpacity onPress={onCartPress} style={styles.iconButton}>
-                                    <ShoppingCart size={22} color={theme.colors.textPrimary} />
+                                    <View>
+                                        <ShoppingCart size={22} color={theme.colors.textPrimary} />
+                                        {renderBadge(cartCount)}
+                                    </View>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity onPress={onProfilePress} style={styles.iconButton}>
@@ -74,9 +96,13 @@ export const ThemeHeader: React.FC<ThemeHeaderProps> = ({
                         ) : (
                             // Legacy / Midnight Icons (Heart + User)
                             <>
-                                {/* Wishlist (Heart) - Assuming we need a handler or placeholder */}
-                                <TouchableOpacity onPress={() => { /* TODO: Wishlist Nav */ }} style={styles.iconButton}>
-                                    <Heart size={24} color={theme.colors.textPrimary} />
+                                {/* Wishlist (Heart) */}
+                                <TouchableOpacity onPress={onMenuPress} style={styles.iconButton}>
+                                    {/* Note: using onMenuPress for now as placeholder or repurpose as Wishlist */}
+                                    <View>
+                                        <Heart size={24} color={theme.colors.textPrimary} />
+                                        {renderBadge(wishlistCount)}
+                                    </View>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity onPress={onProfilePress} style={styles.iconButton}>
@@ -149,5 +175,25 @@ const styles = StyleSheet.create({
         right: 0,
         height: 4,
         zIndex: -1,
+    },
+    badge: {
+        position: 'absolute',
+        top: -5,
+        right: -8,
+        minWidth: 16,
+        height: 16,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 3,
+        borderWidth: 1.5,
+        borderColor: '#FFFFFF', // White border to pop against icon
+    },
+    badgeText: {
+        color: '#FFFFFF',
+        fontSize: 9,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        lineHeight: 11, // Adjust based on font
     }
 });

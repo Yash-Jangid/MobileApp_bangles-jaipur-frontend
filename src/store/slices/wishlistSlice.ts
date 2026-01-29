@@ -78,12 +78,20 @@ const wishlistSlice = createSlice({
                 state.isLoading = true;
                 state.error = null;
             })
-            .addCase(fetchWishlist.fulfilled, (state, action) => {
+            .addCase(fetchWishlist.fulfilled, (state, action: any) => {
                 state.isLoading = false;
-                state.items = action.payload.data;
-                state.total = action.payload.meta.total;
-                state.page = action.payload.meta.page;
-                state.count = action.payload.meta.total;
+                const responseData = action.payload.data;
+                if (responseData && responseData.items) {
+                    state.items = responseData.items;
+                    state.total = responseData.meta?.total || 0;
+                    state.page = responseData.meta?.page || 1;
+                    state.count = responseData.meta?.total || 0;
+                } else {
+                    // Fallback for cases where data might be at the root
+                    state.items = action.payload.data || [];
+                    state.total = action.payload.meta?.total || 0;
+                    state.count = action.payload.meta?.total || 0;
+                }
             })
             .addCase(fetchWishlist.rejected, (state, action) => {
                 state.isLoading = false;

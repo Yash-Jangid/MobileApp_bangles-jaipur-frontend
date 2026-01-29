@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { Heart, Plus } from 'lucide-react-native';
-
 import { Product } from '../types/product';
 
 interface ProductCardProps {
@@ -10,6 +9,7 @@ interface ProductCardProps {
     onPress: () => void;
     onToggleWishlist: () => void;
     onAddToCart: () => void;
+    isWishlisted?: boolean;
 }
 
 const { width } = Dimensions.get('window');
@@ -20,7 +20,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     product,
     onPress,
     onToggleWishlist,
-    onAddToCart
+    onAddToCart,
+    isWishlisted = false
 }) => {
     const { theme } = useTheme();
 
@@ -72,7 +73,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     style={[styles.wishlistButton, { backgroundColor: theme.colors.surface }]}
                     onPress={onToggleWishlist}
                 >
-                    <Heart size={18} color={theme.colors.textPrimary} />
+                    <Heart
+                        size={18}
+                        color={isWishlisted ? theme.colors.error : theme.colors.textPrimary}
+                        fill={isWishlisted ? theme.colors.error : 'transparent'}
+                    />
                 </TouchableOpacity>
 
                 {/* Add Button (Bottom Right of Image) */}
@@ -144,14 +149,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 const styles = StyleSheet.create({
     container: {
         marginBottom: 16,
-        overflow: 'hidden', // For borderRadius if needed
-        // Zeraki doesn't use much rounding on cards, maybe very subtle
+        overflow: 'hidden',
     },
     imageContainer: {
         width: '100%',
-        aspectRatio: 0.8, // Portait aspect ratio
+        aspectRatio: 0.8,
         position: 'relative',
-        backgroundColor: '#f0f0f0', // placeholder
+        backgroundColor: '#f0f0f0',
     },
     image: {
         width: '100%',
@@ -176,10 +180,9 @@ const styles = StyleSheet.create({
         right: 8,
         width: 32,
         height: 32,
-        borderRadius: 16, // Circle
+        borderRadius: 16,
         justifyContent: 'center',
         alignItems: 'center',
-        // Shadow for visibility on light images
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
@@ -194,8 +197,6 @@ const styles = StyleSheet.create({
         height: 36,
         justifyContent: 'center',
         alignItems: 'center',
-        // Square with slight radius? Or pure square?
-        // Zeraki image shows square white bg with +
         borderRadius: 2,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
@@ -215,7 +216,7 @@ const styles = StyleSheet.create({
     },
     details: {
         paddingTop: 8,
-        alignItems: 'center', // Centered text for Zeraki style
+        alignItems: 'center',
     },
     title: {
         marginBottom: 4,
@@ -228,7 +229,6 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     price: {
-        // styled in component
     },
     originalPrice: {
         textDecorationLine: 'line-through',

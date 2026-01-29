@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -16,12 +16,15 @@ import { ThemeHeader } from '../components/ThemeHeader';
 import { ProductCard } from '../components/ProductCard';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchFeaturedProducts, fetchCategories } from '../store/slices/productsSlice';
-import { fetchBanners } from '../store/slices/bannersSlice';
+import { addToCart } from '../store/slices/cartSlice';
+import { addToWishlist, removeFromWishlist, selectWishlistItems, fetchWishlist } from '../store/slices/wishlistSlice';
 import { useTheme } from '../theme/ThemeContext';
-import { Product } from '../types/product';
+import { fetchBanners } from '../store/slices/bannersSlice';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types/navigation';
 import { getPageConfig } from '../api/pagesApi';
+import { CustomToast, ToastType } from '../components/CustomToast';
+import { Product } from '../types/product';
 
 const { width } = Dimensions.get('window');
 
@@ -68,6 +71,7 @@ export const HomeScreen: React.FC<{ navigation: HomeScreenNavigationProp }> = ({
       dispatch(fetchBanners()),
       dispatch(fetchFeaturedProducts(10)), // Load more for grid
       dispatch(fetchCategories()),
+      dispatch(fetchWishlist({})),
     ]);
   };
 
@@ -76,6 +80,55 @@ export const HomeScreen: React.FC<{ navigation: HomeScreenNavigationProp }> = ({
     await loadHomeData();
     await loadPageConfig();
     setRefreshing(false);
+  };
+
+  // Wishlist Logic
+  const wishlistItems = useAppSelector(selectWishlistItems);
+  const wishlistSet = React.useMemo(() => new Set(wishlistItems.map(item => item.productId)), [wishlistItems]);
+
+  // Toast State
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastAction, setToastAction] = useState<{ label: string; onPress: () => void } | undefined>(undefined);
+  const [toastType, setToastType] = useState<ToastType>('default');
+
+  const showToast = (message: string, type: ToastType = 'default', action?: { label: string; onPress: () => void }) => {
+    setToastMessage(message);
+    setToastType(type);
+    setToastAction(action);
+    setToastVisible(true);
+  };
+
+  const handleAddToCart = async (product: Product) => {
+    try {
+      await dispatch(addToCart({
+        productId: product.id,
+        quantity: 1,
+        size: product.specifications?.size || 'Free Size'
+      })).unwrap();
+
+      showToast('Added to bag', 'success', {
+        label: 'VIEW BAG',
+        onPress: () => navigation.navigate('Cart')
+      });
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      showToast('Failed to add to bag', 'error');
+    }
+  };
+
+  const handleToggleWishlist = async (product: Product) => {
+    const isWishlisted = wishlistSet.has(product.id);
+    if (isWishlisted) {
+      await dispatch(removeFromWishlist(product.id));
+      showToast('Removed from wishlist', 'info');
+    } else {
+      await dispatch(addToWishlist(product.id));
+      showToast('Added to wishlist', 'success', {
+        label: 'VIEW',
+        onPress: () => navigation.navigate('Wishlist' as any) // Assuming Wishlist route exists or reuse Collections
+      });
+    }
   };
 
   const renderHeader = () => (
@@ -209,7 +262,6 @@ export const HomeScreen: React.FC<{ navigation: HomeScreenNavigationProp }> = ({
     );
   };
 
-
   const renderFeaturedProducts = () => {
     if (loading.featuredProducts) return <ActivityIndicator color={theme.colors.primary} />;
 
@@ -232,32 +284,42 @@ export const HomeScreen: React.FC<{ navigation: HomeScreenNavigationProp }> = ({
             const dynamicBadge = item.offerBadge
               || (discount > 0 ? `${Math.round(discount)}% OFF` : undefined);
 
+            const isWishlisted = wishlistSet.has(item.id);
+
             const productData: Product = {
               id: item.id,
-              name: item.name || item.title,
-              slug: item.slug,
+              name: item.name || item.title || '',
+              slug: item.slug || '',
               description: item.description || '',
               categoryId: item.categoryId || '',
-              mrp: item.mrp || (item.originalPrice ? item.originalPrice.toString() : '0'),
-              sellingPrice: item.sellingPrice ? item.sellingPrice.toString() : (item.price ? item.price.toString() : '0'),
-              discountPercentage: item.discountPercentage ? item.discountPercentage.toString() : '0',
+              mrp: (item.mrp || item.originalPrice || '0').toString(),
+              sellingPrice: (item.sellingPrice || item.price || '0').toString(),
+              discountPercentage: (item.discountPercentage || '0').toString(),
               stockQuantity: item.stockQuantity || item.stock || 0,
               lowStockThreshold: item.lowStockThreshold || 0,
               sku: item.sku || '',
+              specifications: item.specifications || {},
               isFeatured: item.isFeatured || false,
               isActive: item.isActive || true,
-              images: item.images && Array.isArray(item.images) ? item.images : (item.image ? [{ imageUrl: item.image, isPrimary: true }] : []),
+              images: (item.images && Array.isArray(item.images) ? item.images : (item.image ? [{ imageUrl: item.image, isPrimary: true }] : [])).map((img: any, idx: number) => ({
+                id: img.id || Math.random().toString(),
+                imageUrl: img.imageUrl || img,
+                thumbnailUrl: img.thumbnailUrl || img.imageUrl || img,
+                altText: img.altText || item.name || '',
+                isPrimary: img.isPrimary || (idx === 0),
+                sortOrder: img.sortOrder || idx,
+              })),
               offerBadge: dynamicBadge,
               isOutofStock: item.isOutofStock || (item.stockQuantity !== undefined && item.stockQuantity <= 0),
-              ...item
             };
 
             return (
               <ProductCard
                 product={productData}
                 onPress={() => navigation.navigate('ProductDetails', { productId: item.id })}
-                onAddToCart={() => { }}
-                onToggleWishlist={() => { }}
+                onAddToCart={() => handleAddToCart(productData)}
+                onToggleWishlist={() => handleToggleWishlist(productData)}
+                isWishlisted={isWishlisted}
               />
             );
           }}
@@ -265,6 +327,8 @@ export const HomeScreen: React.FC<{ navigation: HomeScreenNavigationProp }> = ({
       </View>
     );
   };
+
+  // ... (existing renders)
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -288,6 +352,18 @@ export const HomeScreen: React.FC<{ navigation: HomeScreenNavigationProp }> = ({
         {renderAdvertisement()}
         {renderFeaturedProducts()}
       </ScrollView>
+
+      <CustomToast
+        visible={toastVisible}
+        message={toastMessage}
+        type={toastType}
+        actionLabel={toastAction?.label}
+        onAction={() => {
+          toastAction?.onPress();
+          setToastVisible(false);
+        }}
+        onDismiss={() => setToastVisible(false)}
+      />
     </View>
   );
 };

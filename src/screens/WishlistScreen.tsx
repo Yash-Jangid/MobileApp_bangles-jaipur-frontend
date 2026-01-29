@@ -15,9 +15,10 @@ import {
     Image,
     RefreshControl,
     ActivityIndicator,
+    Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Heart, ShoppingCart, Trash2 } from 'lucide-react-native';
+import { Heart, ShoppingBag, X } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
@@ -27,8 +28,15 @@ import {
     selectWishlistLoading,
     selectWishlistError,
 } from '../store/slices/wishlistSlice';
+import { addToCart } from '../store/slices/cartSlice';
 import { WishlistItem } from '../api/wishlistApi';
 import { ThemeHeader } from '../components/ThemeHeader';
+import { CustomToast, ToastType } from '../components/CustomToast';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../types/navigation';
+
+type WishlistScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const WishlistScreen: React.FC = () => {
     const { theme } = useTheme();
@@ -39,6 +47,20 @@ const WishlistScreen: React.FC = () => {
     const error = useAppSelector(selectWishlistError);
 
     const [refreshing, setRefreshing] = React.useState(false);
+    const navigation = useNavigation<WishlistScreenNavigationProp>();
+
+    // Toast State
+    const [toastVisible, setToastVisible] = React.useState(false);
+    const [toastMessage, setToastMessage] = React.useState('');
+    const [toastAction, setToastAction] = React.useState<{ label: string; onPress: () => void } | undefined>(undefined);
+    const [toastType, setToastType] = React.useState<ToastType>('default');
+
+    const showToast = (message: string, type: ToastType = 'default', action?: { label: string; onPress: () => void }) => {
+        setToastMessage(message);
+        setToastType(type);
+        setToastAction(action);
+        setToastVisible(true);
+    };
 
     useEffect(() => {
         dispatch(fetchWishlist({}));
@@ -51,44 +73,78 @@ const WishlistScreen: React.FC = () => {
     }, [dispatch]);
 
     const handleRemove = useCallback(async (productId: string) => {
-        await dispatch(removeFromWishlist(productId));
+        try {
+            await dispatch(removeFromWishlist(productId)).unwrap();
+            showToast('Removed from wishlist', 'info');
+        } catch (error) {
+            showToast('Failed to remove from wishlist', 'error');
+        }
     }, [dispatch]);
 
-    const handleAddToCart = (productId: string) => {
-        // TODO: Implement add to cart functionality
-        console.log('Add to cart:', productId);
+    const handleAddToCart = async (product: any) => {
+        try {
+            await dispatch(addToCart({
+                productId: product.id,
+                quantity: 1,
+                size: '2.4' // Default size for wishlist items since we don't have a picker here
+            })).unwrap();
+
+            showToast('Added to bag', 'success', {
+                label: 'VIEW BAG',
+                onPress: () => navigation.navigate('Cart')
+            });
+        } catch (error) {
+            showToast('Failed to add to bag', 'error');
+        }
     };
 
     const renderEmpty = () => (
-        <View style={[styles.emptyContainer, { backgroundColor: theme.colors.background }]}>
-            <Heart
-                size={80}
-                color={theme.colors.textSecondary}
-                strokeWidth={1}
-            />
+        <View style={styles.emptyContainer}>
+            <View style={[styles.emptyIconContainer, { backgroundColor: theme.colors.surface }]}>
+                <Heart
+                    size={48}
+                    color={theme.colors.textSecondary}
+                    strokeWidth={1.5}
+                />
+            </View>
             <Text style={[styles.emptyTitle, { color: theme.colors.textPrimary }]}>
-                Your Wishlist is Empty
+                Wishlist is empty
             </Text>
             <Text style={[styles.emptySubtitle, { color: theme.colors.textSecondary }]}>
-                Save your favorite items here
+                Seems you haven't added anything to your wishlist yet.
             </Text>
+            <TouchableOpacity
+                style={[styles.exploreButton, { backgroundColor: theme.colors.primary }]}
+                onPress={() => navigation.navigate('Collections', {})}
+            >
+                <Text style={styles.exploreButtonText}>EXPLORE NOW</Text>
+            </TouchableOpacity>
         </View>
     );
 
     const renderItem = ({ item }: { item: WishlistItem }) => {
         const product = item.product;
-        const imageUrl = product.images?.[0]?.url || '';
+        const imageUrl = product.images?.[0]?.imageUrl || '';
 
         return (
-            <View
+            <TouchableOpacity
                 style={[
                     styles.productCard,
                     {
                         backgroundColor: theme.colors.surface,
-                        borderColor: theme.colors.border,
                     }
                 ]}
+                activeOpacity={0.9}
+                onPress={() => navigation.navigate('ProductDetails', { productId: product.id })}
             >
+                {/* Remove Icon */}
+                <TouchableOpacity
+                    style={[styles.removeIcon, { backgroundColor: theme.colors.surface + 'CC' }]}
+                    onPress={() => handleRemove(product.id)}
+                >
+                    <X size={16} color={theme.colors.textPrimary} />
+                </TouchableOpacity>
+
                 {/* Product Image */}
                 <Image
                     source={{ uri: imageUrl }}
@@ -100,7 +156,7 @@ const WishlistScreen: React.FC = () => {
                 <View style={styles.productInfo}>
                     <Text
                         style={[styles.productName, { color: theme.colors.textPrimary }]}
-                        numberOfLines={2}
+                        numberOfLines={1}
                     >
                         {product.name}
                     </Text>
@@ -114,84 +170,67 @@ const WishlistScreen: React.FC = () => {
 
                     {/* Price Section */}
                     <View style={styles.priceRow}>
-                        <Text style={[styles.price, { color: theme.colors.primary }]}>
+                        <Text style={[styles.price, { color: theme.colors.textPrimary }]}>
                             ₹{product.sellingPrice.toLocaleString()}
                         </Text>
                         {product.discount > 0 && (
-                            <>
-                                <Text style={[styles.originalPrice, { color: theme.colors.textSecondary }]}>
-                                    ₹{product.originalPrice.toLocaleString()}
-                                </Text>
-                                <Text style={[styles.discount, { color: theme.colors.success }]}>
-                                    {product.discount}% OFF
-                                </Text>
-                            </>
+                            <Text style={[styles.originalPrice, { color: theme.colors.textSecondary }]}>
+                                ₹{product.originalPrice.toLocaleString()}
+                            </Text>
+                        )}
+                        {product.discount > 0 && (
+                            <Text style={[styles.discount, { color: theme.colors.success }]}>
+                                ({product.discount}% OFF)
+                            </Text>
                         )}
                     </View>
-
-                    {/* Stock Status */}
-                    {product.stock > 0 ? (
-                        <Text style={[styles.inStock, { color: theme.colors.success }]}>
-                            In Stock
-                        </Text>
-                    ) : (
-                        <Text style={[styles.outOfStock, { color: theme.colors.error }]}>
-                            Out of Stock
-                        </Text>
-                    )}
                 </View>
 
-                {/* Action Buttons */}
-                <View style={styles.actions}>
-                    <TouchableOpacity
-                        style={[
-                            styles.actionButton,
-                            { backgroundColor: theme.colors.primary }
-                        ]}
-                        onPress={() => handleAddToCart(product.id)}
-                        disabled={product.stock === 0}
-                    >
-                        <ShoppingCart size={18} color={theme.colors.buttonText} />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={[
-                            styles.actionButton,
-                            { backgroundColor: theme.colors.error }
-                        ]}
-                        onPress={() => handleRemove(product.id)}
-                    >
-                        <Trash2 size={18} color="#FFFFFF" />
-                    </TouchableOpacity>
-                </View>
-            </View>
+                {/* Add to Bag Button */}
+                <TouchableOpacity
+                    style={[
+                        styles.addToBagButton,
+                        {
+                            borderTopColor: theme.colors.border,
+                            opacity: product.stock === 0 ? 0.6 : 1
+                        }
+                    ]}
+                    onPress={() => handleAddToCart(product)}
+                    disabled={product.stock === 0}
+                >
+                    <ShoppingBag size={16} color={theme.colors.primary} style={{ marginRight: 6 }} />
+                    <Text style={[styles.addToBagText, { color: theme.colors.primary }]}>
+                        {product.stock === 0 ? 'OUT OF STOCK' : 'MOVE TO BAG'}
+                    </Text>
+                </TouchableOpacity>
+            </TouchableOpacity>
         );
     };
 
-    if (isLoading && wishlistItems.length === 0) {
+    if (isLoading && Array.isArray(wishlistItems) && wishlistItems.length === 0) {
         return (
-            <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-                {/* <ThemeHeader /> */}
+            <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+                <ThemeHeader
+                    title="MY WISHLIST"
+                    onCartPress={() => navigation.navigate('Cart')}
+                    onSearchPress={() => { }}
+                    onProfilePress={() => navigation.navigate('Profile')}
+                />
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={theme.colors.primary} />
                 </View>
-            </SafeAreaView>
+            </View>
         );
     }
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-            {/* <ThemeHeader /> */}
-
-            {/* Header */}
-            <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
-                <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>
-                    My Wishlist
-                </Text>
-                <Text style={[styles.itemCount, { color: theme.colors.textSecondary }]}>
-                    {wishlistItems.length} {wishlistItems.length === 1 ? 'item' : 'items'}
-                </Text>
-            </View>
+        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+            <ThemeHeader
+                title="MY WISHLIST"
+                onCartPress={() => navigation.navigate('Cart')}
+                onSearchPress={() => { }}
+                onProfilePress={() => navigation.navigate('Profile')}
+            />
 
             {/* Error Message */}
             {error && (
@@ -207,6 +246,8 @@ const WishlistScreen: React.FC = () => {
                 data={wishlistItems}
                 renderItem={renderItem}
                 keyExtractor={(item) => item.id}
+                numColumns={2}
+                columnWrapperStyle={styles.columnWrapper}
                 ListEmptyComponent={renderEmpty}
                 contentContainerStyle={wishlistItems.length === 0 ? styles.emptyList : styles.list}
                 refreshControl={
@@ -218,7 +259,19 @@ const WishlistScreen: React.FC = () => {
                     />
                 }
             />
-        </SafeAreaView>
+
+            <CustomToast
+                visible={toastVisible}
+                message={toastMessage}
+                type={toastType}
+                actionLabel={toastAction?.label}
+                onAction={() => {
+                    toastAction?.onPress();
+                    setToastVisible(false);
+                }}
+                onDismiss={() => setToastVisible(false)}
+            />
+        </View>
     );
 };
 
@@ -231,21 +284,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-    },
-    headerTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-    },
-    itemCount: {
-        fontSize: 14,
-    },
     errorContainer: {
         padding: 12,
         marginHorizontal: 16,
@@ -257,7 +295,10 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     list: {
-        padding: 16,
+        padding: 8,
+    },
+    columnWrapper: {
+        justifyContent: 'space-between',
     },
     emptyList: {
         flex: 1,
@@ -266,82 +307,106 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 32,
+        paddingHorizontal: 40,
+    },
+    emptyIconContainer: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24,
     },
     emptyTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        marginTop: 24,
+        marginBottom: 12,
     },
     emptySubtitle: {
         fontSize: 14,
-        marginTop: 8,
         textAlign: 'center',
+        lineHeight: 20,
+        marginBottom: 32,
+    },
+    exploreButton: {
+        paddingHorizontal: 32,
+        paddingVertical: 12,
+        borderRadius: 4,
+    },
+    exploreButtonText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: 'bold',
+        letterSpacing: 1,
     },
     productCard: {
-        flexDirection: 'row',
-        marginBottom: 16,
-        borderRadius: 12,
-        borderWidth: 1,
+        width: (Dimensions.get('window').width - 24) / 2,
+        marginBottom: 12,
+        borderRadius: 4,
         overflow: 'hidden',
-        padding: 12,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+    },
+    removeIcon: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        zIndex: 10,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     productImage: {
-        width: 100,
-        height: 100,
-        borderRadius: 8,
+        width: '100%',
+        aspectRatio: 0.8,
     },
     productInfo: {
-        flex: 1,
-        marginLeft: 12,
-        justifyContent: 'space-between',
+        padding: 10,
     },
     productName: {
-        fontSize: 16,
-        fontWeight: '600',
+        fontSize: 13,
+        fontWeight: '500',
     },
     productCategory: {
-        fontSize: 12,
-        marginTop: 4,
+        fontSize: 11,
+        marginTop: 2,
     },
     priceRow: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         alignItems: 'center',
-        marginTop: 8,
-        gap: 8,
+        marginTop: 6,
+        gap: 4,
     },
     price: {
-        fontSize: 18,
+        fontSize: 14,
         fontWeight: 'bold',
     },
     originalPrice: {
-        fontSize: 14,
+        fontSize: 11,
         textDecorationLine: 'line-through',
     },
     discount: {
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: '600',
     },
-    inStock: {
-        fontSize: 12,
-        marginTop: 4,
-    },
-    outOfStock: {
-        fontSize: 12,
-        marginTop: 4,
-    },
-    actions: {
-        justifyContent: 'space-around',
+    addToBagButton: {
+        flexDirection: 'row',
         alignItems: 'center',
-        marginLeft: 8,
-    },
-    actionButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
         justifyContent: 'center',
-        alignItems: 'center',
-        marginVertical: 4,
+        paddingVertical: 10,
+        borderTopWidth: 1,
+        marginTop: 4,
+    },
+    addToBagText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        letterSpacing: 0.5,
     },
 });
 
