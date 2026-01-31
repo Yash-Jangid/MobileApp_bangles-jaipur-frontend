@@ -8,12 +8,12 @@ import {
   Image,
   Dimensions,
   RefreshControl,
-  ActivityIndicator,
   FlatList,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { ThemeHeader } from '../components/ThemeHeader';
 import { ProductCard } from '../components/ProductCard';
+import { SkeletonLoader } from '../components/common/SkeletonLoader';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchFeaturedProducts, fetchCategories } from '../store/slices/productsSlice';
 import { addToCart } from '../store/slices/cartSlice';
@@ -67,10 +67,13 @@ export const HomeScreen: React.FC<{ navigation: HomeScreenNavigationProp }> = ({
   }, [banners]);
 
   const loadHomeData = async () => {
+    // Sequential loading for better UX - top to bottom flow
+    await dispatch(fetchBanners());
+    await dispatch(fetchCategories());
+
+    // Load products and wishlist in parallel (wishlist doesn't affect visible UI)
     await Promise.all([
-      dispatch(fetchBanners()),
-      dispatch(fetchFeaturedProducts(10)), // Load more for grid
-      dispatch(fetchCategories()),
+      dispatch(fetchFeaturedProducts(10)),
       dispatch(fetchWishlist({})),
     ]);
   };
@@ -141,8 +144,20 @@ export const HomeScreen: React.FC<{ navigation: HomeScreenNavigationProp }> = ({
     />
   );
 
+  // Shimmer loading states
+  const renderBannerShimmer = () => (
+    <View style={styles.bannerContainer}>
+      <SkeletonLoader width={width} height={200} borderRadius={0} />
+      <View style={styles.paginationContainer}>
+        {[1, 2, 3].map((i) => (
+          <SkeletonLoader key={i} width={8} height={8} borderRadius={4} style={{ marginHorizontal: 4 }} />
+        ))}
+      </View>
+    </View>
+  );
+
   const renderWelcomeSection = () => {
-    if (bannersLoading) return <ActivityIndicator size="large" color={theme.colors.primary} />;
+    if (bannersLoading) return renderBannerShimmer();
     if (banners.length === 0) return null;
 
     return (
@@ -262,8 +277,23 @@ export const HomeScreen: React.FC<{ navigation: HomeScreenNavigationProp }> = ({
     );
   };
 
+  const renderProductGridShimmer = () => (
+    <View style={[styles.featuredCoursesContainer, { backgroundColor: theme.colors.background }]}>
+      <SkeletonLoader width="40%" height={24} style={{ marginBottom: 16 }} />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+        {[1, 2, 3, 4].map((i) => (
+          <View key={i} style={{ width: '48%', marginBottom: 16 }}>
+            <SkeletonLoader width="100%" height={200} borderRadius={8} />
+            <SkeletonLoader width="80%" height={16} style={{ marginTop: 8 }} />
+            <SkeletonLoader width="60%" height={14} style={{ marginTop: 4 }} />
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+
   const renderFeaturedProducts = () => {
-    if (loading.featuredProducts) return <ActivityIndicator color={theme.colors.primary} />;
+    if (loading.featuredProducts) return renderProductGridShimmer();
 
     return (
       <View style={[styles.featuredCoursesContainer, { backgroundColor: theme.colors.background }]}>
