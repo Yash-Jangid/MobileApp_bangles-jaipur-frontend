@@ -62,6 +62,7 @@ export const API_CONFIG = {
         // Payments
         PAYMENTS: {
             INITIATE: '/payments/initiate',
+            METHODS: '/payments/methods',
         },
 
         // Health

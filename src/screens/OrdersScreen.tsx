@@ -22,7 +22,7 @@ export const OrdersScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         dispatch(fetchOrders({ page: 1, limit: 20 }));
     }, [dispatch]);
 
-    const navigateToDetails = (orderId: number) => {
+    const navigateToDetails = (orderId: string) => {
         navigation.navigate('OrderDetails', { orderId });
     };
 
@@ -72,7 +72,7 @@ export const OrdersScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             </Text>
             <TouchableOpacity
                 style={styles.shopButton}
-                onPress={() => navigation.navigate('Home')}
+                onPress={() => navigation.navigate('Main', { screen: 'Home' })}
             >
                 <Text style={styles.shopButtonText}>Start Shopping</Text>
             </TouchableOpacity>

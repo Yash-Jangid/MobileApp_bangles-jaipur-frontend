@@ -66,7 +66,7 @@ export const fetchOrders = createAsyncThunk(
 
 export const fetchOrderDetails = createAsyncThunk(
     'orders/fetchOrderDetails',
-    async (id: number, { rejectWithValue }) => {
+    async (id: string, { rejectWithValue }) => {
         try {
             const response = await ordersApi.getOrderById(id);
             return response.data;

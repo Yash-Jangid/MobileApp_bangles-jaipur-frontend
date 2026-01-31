@@ -1,6 +1,8 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import { API_CONFIG, getApiUrl, HTTP_STATUS } from '../config/api.config';
 import { getAccessToken, getRefreshToken, saveAccessToken, saveRefreshToken, clearAuthData } from '../utils/storage';
+import { store } from '../store';
+import { setServiceUnavailable } from '../store/slices/appSettingsSlice';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -41,6 +43,7 @@ const isCircuitOpen = (): boolean => {
         if (__DEV__) console.log('🔓 [Circuit Breaker] Circuit CLOSED. Retrying...');
         consecutiveFailures = 0;
         circuitOpenUntil = 0;
+        store.dispatch(setServiceUnavailable(false));
     }
     return false;
 };
@@ -60,6 +63,8 @@ const recordFailure = () => {
                 `Circuit OPEN for ${CIRCUIT_BREAKER_CONFIG.CIRCUIT_RESET_TIMEOUT / 1000}s`
             );
         }
+        // Notify store
+        store.dispatch(setServiceUnavailable(true));
     }
 };
 

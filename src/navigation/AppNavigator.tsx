@@ -28,6 +28,11 @@ import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import VerifyOTPScreen from '../screens/VerifyOTPScreen';
 import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import WishlistScreen from '../screens/WishlistScreen';
+import { OfflineScreen } from '../screens/OfflineScreen';
+import { ConnectivityManager } from '../components/ConnectivityManager';
+import { useAppDispatch } from '../store/hooks';
+import NetInfo from '@react-native-community/netinfo';
+import { setOffline, setServiceUnavailable } from '../store/slices/appSettingsSlice';
 
 // Types
 import { RootStackParamList, TabParamList } from '../types/navigation';
@@ -127,44 +132,66 @@ const MainTabNavigator = () => {
 };
 
 export const AppNavigator = () => {
+  const dispatch = useAppDispatch();
   const { isAuthenticated, token, accessToken, isGuestMode } = useAppSelector((state) => state.auth);
+  const { isOffline, isServiceUnavailable } = useAppSelector((state) => state.appSettings);
+
+  const handleRetry = async () => {
+    // 1. Check network again
+    const state = await NetInfo.fetch();
+    const stillOffline = state.isConnected === false || state.isInternetReachable === false;
+    dispatch(setOffline(stillOffline));
+
+    // 2. Reset service unavailability (circuit breaker)
+    // This allows the next request to attempt closure if the circuit timeout expired
+    dispatch(setServiceUnavailable(false));
+  };
 
   return (
     <NavigationContainer
       fallback={<Text>Loading...</Text>}
     >
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-          gestureEnabled: true,
-        }}
-        initialRouteName={(isAuthenticated && (token || accessToken)) || isGuestMode ? "Main" : "LoginNew"}
-      >
-        {/* Auth Screens */}
-        <Stack.Screen name="Login" component={LoginNewScreen} />
-        <Stack.Screen name="SignUp" component={SignUpNewScreen} />
-        <Stack.Screen name="LoginNew" component={LoginNewScreen} />
-        <Stack.Screen name="SignUpNew" component={SignUpNewScreen} />
-        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-        <Stack.Screen name="VerifyOTP" component={VerifyOTPScreen} />
-        <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+      <ConnectivityManager />
 
-        <Stack.Screen name="Cart" component={CartScreen} />
-        <Stack.Screen name="Wishlist" component={WishlistScreen} />
+      {isOffline || isServiceUnavailable ? (
+        <OfflineScreen
+          errorType={isOffline ? 'offline' : 'service_unavailable'}
+          onRetry={handleRetry}
+        />
+      ) : (
+        <Stack.Navigator
+          screenOptions={{
+            headerShown: false,
+            gestureEnabled: true,
+          }}
+          initialRouteName={(isAuthenticated && (token || accessToken)) || isGuestMode ? "Main" : "LoginNew"}
+        >
+          {/* Auth Screens */}
+          <Stack.Screen name="Login" component={LoginNewScreen} />
+          <Stack.Screen name="SignUp" component={SignUpNewScreen} />
+          <Stack.Screen name="LoginNew" component={LoginNewScreen} />
+          <Stack.Screen name="SignUpNew" component={SignUpNewScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+          <Stack.Screen name="VerifyOTP" component={VerifyOTPScreen} />
+          <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
 
-        {/* Main App */}
-        <Stack.Screen name="Main" component={MainTabNavigator} />
+          <Stack.Screen name="Cart" component={CartScreen} />
+          <Stack.Screen name="Wishlist" component={WishlistScreen} />
 
-        {/* E-Commerce Screens */}
-        <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} />
-        <Stack.Screen name="Checkout" component={CheckoutScreen} />
-        <Stack.Screen name="Orders" component={OrdersScreen} />
-        <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
+          {/* Main App */}
+          <Stack.Screen name="Main" component={MainTabNavigator} />
 
-        {/* Profile & Utility Screens */}
-        <Stack.Screen name="Notifications" component={NotificationsScreen} />
-        <Stack.Screen name="WebView" component={WebViewScreen} />
-      </Stack.Navigator>
+          {/* E-Commerce Screens */}
+          <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} />
+          <Stack.Screen name="Checkout" component={CheckoutScreen} />
+          <Stack.Screen name="Orders" component={OrdersScreen} />
+          <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
+
+          {/* Profile & Utility Screens */}
+          <Stack.Screen name="Notifications" component={NotificationsScreen} />
+          <Stack.Screen name="WebView" component={WebViewScreen} />
+        </Stack.Navigator>
+      )}
     </NavigationContainer>
   );
 };

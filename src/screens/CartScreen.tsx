@@ -185,13 +185,13 @@ export const CartScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const renderEmptyCart = () => (
     <View style={styles.emptyContainer}>
       <ShoppingCart size={100} color={colors.neutral.gray300} />
-      <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>Your cart is empty</Text>
+      <Text style={[styles.emptyTitle, { color: theme.colors.textPrimary }]}>Your cart is empty</Text>
       <Text style={styles.emptySubtitle}>
         Looks like you haven't added anything to your cart yet.
       </Text>
       <TouchableOpacity
         style={[styles.shopNowButton, { backgroundColor: colors.primary.main }]}
-        onPress={() => navigation.navigate('Home')}
+        onPress={() => navigation.navigate('Main', { screen: 'Home' })}
       >
         <Text style={styles.shopNowButtonText}>Start Shopping</Text>
       </TouchableOpacity>

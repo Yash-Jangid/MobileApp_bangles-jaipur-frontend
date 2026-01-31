@@ -15,8 +15,10 @@ import { Fonts } from '../common/fonts';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { createOrder } from '../store/slices/ordersSlice';
 import { clearCart } from '../store/slices/cartSlice';
+import { CreateOrderPayload, getEnabledPaymentMethods } from '../api/ordersApi';
+import { useEffect } from 'react';
 
-type PaymentMethod = 'COD' | 'PhonePe' | 'GPay';
+type PaymentMethod = 'COD' | 'PhonePe' | 'Razorpay';
 
 export const CheckoutScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const dispatch = useAppDispatch();
@@ -33,7 +35,36 @@ export const CheckoutScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
     pincode: '',
   });
 
-  const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>('COD');
+  const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
+  const [enabledMethods, setEnabledMethods] = useState<string[]>([]);
+  const [loadingMethods, setLoadingMethods] = useState(true);
+
+  useEffect(() => {
+    const fetchMethods = async () => {
+      try {
+        const response = await getEnabledPaymentMethods();
+        if (response.success && response.data) {
+          setEnabledMethods(response.data);
+          // Auto-select if only one method or default to COD if available
+          if (response.data.length === 1) {
+            const method = response.data[0].toUpperCase();
+            setSelectedPayment(method as PaymentMethod);
+          } else if (response.data.includes('cod')) {
+            setSelectedPayment('COD');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch payment methods:', error);
+        // Fallback to COD if fetch fails
+        setEnabledMethods(['cod']);
+        setSelectedPayment('COD');
+      } finally {
+        setLoadingMethods(false);
+      }
+    };
+
+    fetchMethods();
+  }, []);
 
   const handlePlaceOrder = async () => {
     // Validate address
@@ -49,22 +80,23 @@ export const CheckoutScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
       return;
     }
 
-    const payload = {
-      items: items.map(item => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        size: item.size
-      })),
+    const payload: CreateOrderPayload = {
       shippingAddress: {
-        street: address.addressLine1 + (address.addressLine2 ? ', ' + address.addressLine2 : ''),
+        fullName: address.fullName,
+        phoneNumber: address.phone,
+        addressLine1: address.addressLine1,
+        addressLine2: address.addressLine2,
         city: address.city,
         state: address.state,
-        zipCode: address.pincode,
-        country: 'India', // Hardcoded for now
-        phone: address.phone
+        pincode: address.pincode,
       },
-      paymentMethod: selectedPayment
+      paymentMethod: selectedPayment?.toLowerCase() as 'cod' | 'phonepe' | 'razorpay'
     };
+
+    if (!payload.paymentMethod) {
+      Alert.alert('Payment Method Required', 'Please select a payment method');
+      return;
+    }
 
     try {
       await dispatch(createOrder(payload)).unwrap();
@@ -74,7 +106,7 @@ export const CheckoutScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
       Alert.alert(
         'Order Placed!',
         `Your order of ₹${totalAmount} has been placed successfully with ${selectedPayment}`,
-        [{ text: 'OK', onPress: () => navigation.navigate('Home') }]
+        [{ text: 'OK', onPress: () => navigation.navigate('Main', { screen: 'Home' }) }]
       );
     } catch (error) {
       Alert.alert('Order Failed', typeof error === 'string' ? error : 'Failed to place order. Please try again.');
@@ -157,53 +189,71 @@ export const CheckoutScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Payment Method</Text>
 
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              selectedPayment === 'COD' && styles.paymentOptionSelected,
-            ]}
-            onPress={() => setSelectedPayment('COD')}
-          >
-            <View style={styles.radioButton}>
-              {selectedPayment === 'COD' && <View style={styles.radioButtonInner} />}
-            </View>
-            <View style={styles.paymentInfo}>
-              <Text style={styles.paymentTitle}>Cash on Delivery</Text>
-              <Text style={styles.paymentDescription}>Pay when you receive</Text>
-            </View>
-          </TouchableOpacity>
+          {loadingMethods ? (
+            <ActivityIndicator size="small" color={colors.primary.main} style={{ marginVertical: 20 }} />
+          ) : (
+            <>
+              {enabledMethods.includes('cod') && (
+                <TouchableOpacity
+                  style={[
+                    styles.paymentOption,
+                    selectedPayment === 'COD' && styles.paymentOptionSelected,
+                  ]}
+                  onPress={() => setSelectedPayment('COD')}
+                >
+                  <View style={styles.radioButton}>
+                    {selectedPayment === 'COD' && <View style={styles.radioButtonInner} />}
+                  </View>
+                  <View style={styles.paymentInfo}>
+                    <Text style={styles.paymentTitle}>Cash on Delivery</Text>
+                    <Text style={styles.paymentDescription}>Pay when you receive</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
 
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              selectedPayment === 'PhonePe' && styles.paymentOptionSelected,
-            ]}
-            onPress={() => setSelectedPayment('PhonePe')}
-          >
-            <View style={styles.radioButton}>
-              {selectedPayment === 'PhonePe' && <View style={styles.radioButtonInner} />}
-            </View>
-            <View style={styles.paymentInfo}>
-              <Text style={styles.paymentTitle}>PhonePe</Text>
-              <Text style={styles.paymentDescription}>Pay via PhonePe UPI</Text>
-            </View>
-          </TouchableOpacity>
+              {enabledMethods.includes('phonepe') && (
+                <TouchableOpacity
+                  style={[
+                    styles.paymentOption,
+                    selectedPayment === 'PhonePe' && styles.paymentOptionSelected,
+                  ]}
+                  onPress={() => setSelectedPayment('PhonePe')}
+                >
+                  <View style={styles.radioButton}>
+                    {selectedPayment === 'PhonePe' && <View style={styles.radioButtonInner} />}
+                  </View>
+                  <View style={styles.paymentInfo}>
+                    <Text style={styles.paymentTitle}>PhonePe</Text>
+                    <Text style={styles.paymentDescription}>Pay via PhonePe UPI</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
 
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              selectedPayment === 'GPay' && styles.paymentOptionSelected,
-            ]}
-            onPress={() => setSelectedPayment('GPay')}
-          >
-            <View style={styles.radioButton}>
-              {selectedPayment === 'GPay' && <View style={styles.radioButtonInner} />}
-            </View>
-            <View style={styles.paymentInfo}>
-              <Text style={styles.paymentTitle}>Google Pay</Text>
-              <Text style={styles.paymentDescription}>Pay via Google Pay UPI</Text>
-            </View>
-          </TouchableOpacity>
+              {enabledMethods.includes('razorpay') && (
+                <TouchableOpacity
+                  style={[
+                    styles.paymentOption,
+                    selectedPayment === 'Razorpay' && styles.paymentOptionSelected,
+                  ]}
+                  onPress={() => setSelectedPayment('Razorpay')}
+                >
+                  <View style={styles.radioButton}>
+                    {selectedPayment === 'Razorpay' && <View style={styles.radioButtonInner} />}
+                  </View>
+                  <View style={styles.paymentInfo}>
+                    <Text style={styles.paymentTitle}>Razorpay</Text>
+                    <Text style={styles.paymentDescription}>Pay via Cards, Netbanking, UPI</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+
+              {enabledMethods.length === 0 && (
+                <Text style={{ color: colors.semantic.error, textAlign: 'center', marginVertical: 10 }}>
+                  No payment methods available. Please contact support.
+                </Text>
+              )}
+            </>
+          )}
         </View>
 
         {/* Order Summary Section */}

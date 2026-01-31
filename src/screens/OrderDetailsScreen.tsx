@@ -70,7 +70,7 @@ export const OrderDetailsScreen: React.FC<{ navigation: any; route: any }> = ({ 
                     {currentOrder.items.map((item) => (
                         <View key={item.id} style={styles.itemCard}>
                             <Image
-                                source={{ uri: item.productImage || 'https://via.placeholder.com/80' }}
+                                source={{ uri: item.productImageUrl || 'https://via.placeholder.com/80' }}
                                 style={styles.itemImage}
                             />
                             <View style={styles.itemInfo}>
@@ -85,11 +85,15 @@ export const OrderDetailsScreen: React.FC<{ navigation: any; route: any }> = ({ 
                 {/* Shipping Address */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Shipping Address</Text>
-                    <Text style={styles.addressText}>{currentOrder.shippingAddress.street}</Text>
+                    <Text style={styles.addressText}>{currentOrder.shippingAddress.fullName}</Text>
+                    <Text style={styles.addressText}>{currentOrder.shippingAddress.addressLine1}</Text>
+                    {currentOrder.shippingAddress.addressLine2 && (
+                        <Text style={styles.addressText}>{currentOrder.shippingAddress.addressLine2}</Text>
+                    )}
                     <Text style={styles.addressText}>
-                        {currentOrder.shippingAddress.city}, {currentOrder.shippingAddress.state} - {currentOrder.shippingAddress.zipCode}
+                        {currentOrder.shippingAddress.city}, {currentOrder.shippingAddress.state} - {currentOrder.shippingAddress.pincode}
                     </Text>
-                    <Text style={styles.addressText}>Phone: {currentOrder.shippingAddress.phone}</Text>
+                    <Text style={styles.addressText}>Phone: {currentOrder.shippingAddress.phoneNumber}</Text>
                 </View>
 
                 {/* Price Summary */}

@@ -4,11 +4,11 @@ import { BackendResponse } from './authApi';
 import { CartItem } from './cartApi';
 
 export interface OrderItem {
-  id: number;
-  orderId: number;
-  productId: number;
+  id: string;
+  orderId: string;
+  productId: string;
   productName: string;
-  productImage: string;
+  productImageUrl: string;
   quantity: number;
   price: number;
   size: string;
@@ -16,18 +16,20 @@ export interface OrderItem {
 }
 
 export interface ShippingAddress {
-  street: string;
+  fullName: string;
+  phoneNumber: string;
+  addressLine1: string;
+  addressLine2?: string;
   city: string;
   state: string;
-  zipCode: string;
-  country: string;
-  phone: string;
+  pincode: string;
+  addressType?: string;
 }
 
 export interface Order {
-  id: number;
+  id: string; // Backend uses UUID
   orderNumber: string;
-  userId: number;
+  userId: string;
   status: 'PENDING' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
   totalAmount: number;
   shippingAddress: ShippingAddress;
@@ -39,13 +41,9 @@ export interface Order {
 }
 
 export interface CreateOrderPayload {
-  items: {
-    productId: number;
-    quantity: number;
-    size: string;
-  }[];
   shippingAddress: ShippingAddress;
-  paymentMethod: string;
+  paymentMethod: 'cod' | 'phonepe' | 'razorpay';
+  couponCode?: string;
 }
 
 export interface OrdersListResponse {
@@ -90,10 +88,23 @@ export const getOrders = async (page: number = 1, limit: number = 20): Promise<B
 /**
  * Get order details by ID
  */
-export const getOrderById = async (orderId: number): Promise<BackendResponse<Order>> => {
+export const getOrderById = async (orderId: string): Promise<BackendResponse<Order>> => {
   try {
     const response = await apiClient.get<BackendResponse<Order>>(
       API_CONFIG.ENDPOINTS.ORDERS.DETAILS(orderId)
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(handleApiError(error));
+  }
+};
+/**
+ * Get enabled payment methods from backend
+ */
+export const getEnabledPaymentMethods = async (): Promise<BackendResponse<string[]>> => {
+  try {
+    const response = await apiClient.get<BackendResponse<string[]>>(
+      API_CONFIG.ENDPOINTS.PAYMENTS.METHODS
     );
     return response.data;
   } catch (error) {
