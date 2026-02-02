@@ -1,0 +1,28 @@
+﻿src/api/ordersApi.ts(96,43): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+src/components/ApiDebugTest.tsx(18,45): error TS2551: Property 'getCategoriesSimple' does not exist on type 'ApiService'. Did you mean 'getCategories'?
+src/components/GlobalErrorScreen.tsx(3,25): error TS2307: Cannot find module '../assets/images/OutpostLogo' or its corresponding type declarations.
+src/components/GlobalErrorScreen.tsx(4,31): error TS2307: Cannot find module '../assets/images/internetErrorIcon.png' or its corresponding type declarations.
+src/components/LiveSessionViewer.tsx(410,19): error TS2339: Property 'white' does not exist on type '{ primary: string; primaryDark: string; primaryLight: string; secondary: string; secondaryDark: string; secondaryLight: string; background: string; backgroundSecondary: string; backgroundDark: string; ... 15 more ...; transparent: string; }'.
+src/components/ProfileSection.tsx(151,29): error TS2551: Property 'cardBackground' does not exist on type '{ primary: string; primaryDark: string; primaryLight: string; secondary: string; secondaryDark: string; secondaryLight: string; background: string; backgroundSecondary: string; backgroundDark: string; ... 15 more ...; transparent: string; }'. Did you mean 'background'?
+src/components/ProfileSection.tsx(171,29): error TS2551: Property 'cardBackground' does not exist on type '{ primary: string; primaryDark: string; primaryLight: string; secondary: string; secondaryDark: string; secondaryLight: string; background: string; backgroundSecondary: string; backgroundDark: string; ... 15 more ...; transparent: string; }'. Did you mean 'background'?
+src/components/ProfileSkeleton.tsx(167,29): error TS2551: Property 'cardBackground' does not exist on type '{ primary: string; primaryDark: string; primaryLight: string; secondary: string; secondaryDark: string; secondaryLight: string; background: string; backgroundSecondary: string; backgroundDark: string; ... 15 more ...; transparent: string; }'. Did you mean 'background'?
+src/components/ProfileSkeleton.tsx(203,29): error TS2551: Property 'cardBackground' does not exist on type '{ primary: string; primaryDark: string; primaryLight: string; secondary: string; secondaryDark: string; secondaryLight: string; background: string; backgroundSecondary: string; backgroundDark: string; ... 15 more ...; transparent: string; }'. Did you mean 'background'?
+src/components/ProfileSkeleton.tsx(237,29): error TS2551: Property 'cardBackground' does not exist on type '{ primary: string; primaryDark: string; primaryLight: string; secondary: string; secondaryDark: string; secondaryLight: string; background: string; backgroundSecondary: string; backgroundDark: string; ... 15 more ...; transparent: string; }'. Did you mean 'background'?
+src/components/sdui/CategoryCarousel.tsx(3,10): error TS2305: Module '"../../types/sdui"' has no exported member 'CategoryCarouselProps'.
+src/components/sdui/CategoryCarousel.tsx(10,34): error TS7006: Parameter 'cat' implicitly has an 'any' type.
+src/components/sdui/Header.tsx(3,10): error TS2305: Module '"../../types/sdui"' has no exported member 'HeaderProps'.
+src/navigation/AppNavigator.tsx(126,23): error TS2322: Type '"Orders"' is not assignable to type 'keyof RootStackParamList'.
+src/screens/CartScreen.tsx(53,32): error TS2503: Cannot find namespace 'NodeJS'.
+src/screens/CheckoutScreen.tsx(70,34): error TS2345: Argument of type '{ items: { productId: string; quantity: number; size: string; }[]; shippingAddress: { street: string; city: string; state: string; zipCode: string; country: string; phone: string; }; paymentMethod: PaymentMethod; }' is not assignable to parameter of type 'CreateOrderPayload'.
+  Types of property 'items' are incompatible.
+    Type '{ productId: string; quantity: number; size: string; }[]' is not assignable to type '{ productId: number; quantity: number; size: string; }[]'.
+      Type '{ productId: string; quantity: number; size: string; }' is not assignable to type '{ productId: number; quantity: number; size: string; }'.
+        Types of property 'productId' are incompatible.
+          Type 'string' is not assignable to type 'number'.
+src/store/slices/profileSlice.ts(340,32): error TS18048: 'response.data' is possibly 'undefined'.
+src/store/slices/profileSlice.ts(528,29): error TS2339: Property 'cached' does not exist on type '{ id: any; title: any; date: any; status: any; type: any; }[] | { cached: boolean; }'.
+  Property 'cached' does not exist on type '{ id: any; title: any; date: any; status: any; type: any; }[]'.
+src/store/slices/profileSlice.ts(529,11): error TS2322: Type '{ id: any; title: any; date: any; status: any; type: any; }[] | { cached: boolean; }' is not assignable to type 'WritableNonArrayDraft<Meeting>[]'.
+  Type '{ cached: boolean; }' is missing the following properties from type 'WritableNonArrayDraft<Meeting>[]': length, pop, push, concat, and 35 more.
+src/theme/presets/modern.preset.ts(9,37): error TS2307: Cannot find module './types' or its corresponding type declarations.
+src/theme/registry/themeDefinitions.ts(55,5): error TS2353: Object literal may only specify known properties, and 'componentOverrides' does not exist in type 'ThemeRegistrationOptions'.

@@ -10,14 +10,16 @@ import {
 import Swiper from 'react-native-swiper';
 import {appleAuthAndroid} from '@invertase/react-native-apple-authentication';
 
-import {COLORS, FONT_FAMILY, Images} from '../common';
+import {Colors, Fonts, Images} from '../common';
 import {CustomText} from './ui/CustomText';
 
 const {height} = Dimensions.get('screen');
+
 interface OnboardingScreenProps {
   onOnboardingSkip: () => void;
   signIn: (provider: string) => void;
 }
+
 const OnboardingScreen = (props: OnboardingScreenProps) => {
   const {onOnboardingSkip, signIn} = props;
 
@@ -27,7 +29,7 @@ const OnboardingScreen = (props: OnboardingScreenProps) => {
         style={styles.skipBtn}
         onPress={() => onOnboardingSkip()}>
         <CustomText style={styles.skip}>Skip</CustomText>
-        <Image source={Images.chevron_right} style={styles.arrow} />
+        {/* <Image source={Images.chevron_right} style={styles.arrow} /> */}
       </TouchableOpacity>
       <View style={{marginTop: height * 0.05, minHeight: height * 0.3 + 190}}>
         <Swiper
@@ -36,7 +38,7 @@ const OnboardingScreen = (props: OnboardingScreenProps) => {
           paginationStyle={styles.paginationContainer}
           loop={false}>
           <View style={styles.onboardingContainer}>
-            <Image source={Images.onboarding1} style={styles.onboardingImg} />
+            {/* <Image source={Images.onboarding1} style={styles.onboardingImg} /> */}
             <CustomText style={styles.title}>Stay in the AI Loop</CustomText>
             <CustomText style={styles.description}>
               Outpost keeps you informed with the latest AI breakthroughs and
@@ -44,7 +46,7 @@ const OnboardingScreen = (props: OnboardingScreenProps) => {
             </CustomText>
           </View>
           <View style={styles.onboardingContainer}>
-            <Image source={Images.onboarding2} style={styles.onboardingImg} />
+            {/* <Image source={Images.onboarding2} style={styles.onboardingImg} /> */}
             <CustomText style={styles.title}>
               Discover powerful AI tools
             </CustomText>
@@ -54,7 +56,7 @@ const OnboardingScreen = (props: OnboardingScreenProps) => {
             </CustomText>
           </View>
           <View style={styles.onboardingContainer}>
-            <Image source={Images.onboarding3} style={styles.onboardingImg} />
+            {/* <Image source={Images.onboarding3} style={styles.onboardingImg} /> */}
             <CustomText style={styles.title}>
               Build and share your AI toolkit
             </CustomText>
@@ -77,7 +79,7 @@ const OnboardingScreen = (props: OnboardingScreenProps) => {
           <TouchableOpacity
             style={styles.signUpBtn}
             onPress={() => signIn('google')}>
-            <Image source={Images.google_icon} style={styles.signUpBtnIcon} />
+            {/* <Image source={Images.google_icon} style={styles.signUpBtnIcon} /> */}
             <CustomText style={styles.signUpBtnTxt}>Google</CustomText>
           </TouchableOpacity>
           {(Platform.OS === 'ios' ||
@@ -85,7 +87,7 @@ const OnboardingScreen = (props: OnboardingScreenProps) => {
             <TouchableOpacity
               style={styles.signUpBtn}
               onPress={() => signIn('apple')}>
-              <Image source={Images.apple_icon} style={styles.signUpBtnIcon} />
+              {/* <Image source={Images.apple_icon} style={styles.signUpBtnIcon} /> */}
               <CustomText style={styles.signUpBtnTxt}>Apple</CustomText>
             </TouchableOpacity>
           )}
@@ -98,7 +100,7 @@ const OnboardingScreen = (props: OnboardingScreenProps) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.PRIMARY[10],
+    backgroundColor: Colors.background,
     padding: 16,
   },
   skipBtn: {
@@ -108,8 +110,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   skip: {
-    color: COLORS.PRIMARY[400],
-    fontFamily: FONT_FAMILY[600],
+    color: Colors.primary,
+    fontFamily: Fonts.regular,
+    fontWeight: Fonts.weight.semiBold,
     lineHeight: 24,
   },
   arrow: {
@@ -120,41 +123,45 @@ const styles = StyleSheet.create({
   onboardingContainer: {
     flex: 1,
     alignItems: 'center',
+    paddingHorizontal: 16,
   },
   onboardingImg: {
     height: height * 0.3,
     resizeMode: 'contain',
+    marginBottom: 24,
   },
   title: {
-    color: COLORS.BLACK,
+    color: Colors.textPrimary,
     fontSize: 22,
-    fontFamily: FONT_FAMILY[600],
+    fontFamily: Fonts.regular,
+    fontWeight: Fonts.weight.semiBold,
     lineHeight: 28,
     marginTop: 24,
+    textAlign: 'center',
   },
   description: {
-    color: COLORS.GRAY[500],
+    color: Colors.textSecondary,
     textAlign: 'center',
     fontSize: 16,
     lineHeight: 20,
     marginTop: 12,
   },
   paginationContainer: {
-    position: 'relative',
-    marginTop: 10,
+    position: 'absolute',
+    bottom: 20,
     gap: 8,
     flexDirection: 'row',
   },
   dot: {
     width: 8,
     height: 8,
-    backgroundColor: COLORS.PRIMARY[50],
+    backgroundColor: Colors.secondaryLight,
     borderRadius: 4,
   },
   activeDot: {
     width: 24,
     height: 8,
-    backgroundColor: COLORS.PRIMARY[300],
+    backgroundColor: Colors.primary,
     borderRadius: 4,
   },
   bottomContainer: {
@@ -169,14 +176,14 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   signUpTxt: {
-    color: COLORS.GRAY[900],
+    color: Colors.textPrimary,
     fontSize: 16,
     lineHeight: 24,
   },
   signUpLine: {
     flex: 1,
     height: 1,
-    backgroundColor: COLORS.GRAY[100],
+    backgroundColor: Colors.divider,
   },
   signUpBtnContainer: {
     flexDirection: 'row',
@@ -193,7 +200,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
     borderWidth: 1,
-    borderColor: COLORS.GRAY[400],
+    borderColor: Colors.border,
     borderRadius: 4,
     paddingVertical: 12,
     paddingHorizontal: 32,
@@ -204,11 +211,13 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   signUpBtnTxt: {
-    color: COLORS.GRAY[800],
+    color: Colors.textPrimary,
     fontSize: 16,
     lineHeight: 24,
-    fontFamily: FONT_FAMILY[600],
+    fontFamily: Fonts.regular,
+    fontWeight: Fonts.weight.semiBold,
   },
 });
 
 export {OnboardingScreen};
+

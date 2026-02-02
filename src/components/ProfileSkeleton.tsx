@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   balanceCard: {
     margin: 16,
     padding: 16,
-    backgroundColor: Colors.cardBackground,
+    backgroundColor: Colors.card,
     borderRadius: 12,
   },
   balanceHeader: {
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: Colors.cardBackground,
+    backgroundColor: Colors.card,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   sectionContent: {
-    backgroundColor: Colors.cardBackground,
+    backgroundColor: Colors.card,
     borderRadius: 12,
     padding: 16,
   },

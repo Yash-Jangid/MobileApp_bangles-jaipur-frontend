@@ -12,6 +12,7 @@ interface ThemeContextType {
     theme: ProcessedTheme;
     themeMode: ThemeMode | 'auto'; // User preference
     activeMode: ThemeMode; // Actual rendered mode
+    isDark: boolean; // Computed dark mode state
     themeId: string;
     isLoading: boolean;
     toggleThemeMode: () => void;
@@ -37,6 +38,7 @@ const ThemeContext = createContext<ThemeContextType>({
     theme: defaultProcessed,
     themeMode: 'auto',
     activeMode: 'light',
+    isDark: false,
     themeId: defaultTheme.id,
     isLoading: true,
     toggleThemeMode: () => { },
@@ -132,6 +134,11 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             };
         }, {} as { [K in keyof ThemeColors]: string });
 
+        // Ensure legacy keys are populated if missing from strict types
+        if (!colors.text) colors.text = colors.textPrimary;
+        if (!colors.card) colors.card = colors.surface;
+
+
         return {
             colors,
             typography: themeConfig.typography,
@@ -148,6 +155,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             theme: processedTheme,
             themeMode,
             activeMode,
+            isDark: activeMode === 'dark',
             themeId,
             isLoading,
             toggleThemeMode,

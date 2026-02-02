@@ -21,6 +21,8 @@ export interface ThemeColors {
     textSecondary: ColorToken;
     textInverse: ColorToken;
     textInteractive: ColorToken; // For buttons
+    text: ColorToken; // Legacy support
+    card: ColorToken; // Legacy support
 
     // Interactive Elements
     buttonBackground: ColorToken;

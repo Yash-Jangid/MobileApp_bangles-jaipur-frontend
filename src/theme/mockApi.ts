@@ -17,6 +17,9 @@ export const zerakiTheme: ThemeConfiguration = {
         textSecondary: { light: '#6B7280', dark: '#B3B3B3' },
         textInverse: { light: '#FFFFFF', dark: '#000000' },
         textInteractive: { light: '#FFFFFF', dark: '#000000' },
+        text: { light: '#111827', dark: '#FFFFFF' },
+
+        card: { light: '#FFFFFF', dark: '#1E1E1E' },
 
         buttonBackground: { light: '#000000', dark: '#D4AF37' }, // Black in light, Gold in dark
         buttonText: { light: '#FFFFFF', dark: '#000000' },
@@ -74,6 +77,9 @@ export const midnightTheme: ThemeConfiguration = {
         textSecondary: { light: '#9CA3AF', dark: '#9CA3AF' },
         textInverse: { light: '#000000', dark: '#000000' },
         textInteractive: { light: '#FFFFFF', dark: '#FFFFFF' },
+        text: { light: '#FFFFFF', dark: '#FFFFFF' },
+
+        card: { light: '#1E1E1E', dark: '#1E1E1E' },
 
         buttonBackground: { light: '#D4AF37', dark: '#D4AF37' },
         buttonText: { light: '#FFFFFF', dark: '#FFFFFF' },

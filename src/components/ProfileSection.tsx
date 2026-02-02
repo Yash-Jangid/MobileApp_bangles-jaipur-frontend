@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
   },
   loadingContent: {
-    backgroundColor: Colors.cardBackground,
+    backgroundColor: Colors.card,
     padding: 20,
     borderRadius: 12,
     alignItems: 'center',
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptyContent: {
-    backgroundColor: Colors.cardBackground,
+    backgroundColor: Colors.card,
     padding: 20,
     borderRadius: 12,
     alignItems: 'center',

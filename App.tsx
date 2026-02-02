@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 
+import { UnifiedTestScreen } from './src/screens/UnifiedTestScreen';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { Colors } from './src/common/colors';
 import { Fonts } from './src/common/fonts';
@@ -31,7 +32,8 @@ const App: React.FC = () => {
         <ThemeProvider>
           <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaProvider>
-              <AppNavigator />
+              {/* <AppNavigator /> */}
+              <UnifiedTestScreen />
             </SafeAreaProvider>
           </GestureHandlerRootView>
         </ThemeProvider>

@@ -16,13 +16,13 @@ export const socialLoginDebug = {
       console.log('1. GoogleSignin available:', !!GoogleSignin);
       
       // Test 2: Check current configuration
-      const isSignedIn = await GoogleSignin.isSignedIn();
+      const currentUser = await GoogleSignin.getCurrentUser();
+      const isSignedIn = !!currentUser;
       console.log('2. Currently signed in:', isSignedIn);
       
-      // Test 3: Try to get current user (if signed in)
+      // Test 3: Log current user details (if signed in)
       if (isSignedIn) {
-        const currentUser = await GoogleSignin.getCurrentUser();
-        console.log('3. Current user:', currentUser?.data?.user?.email || 'No user data');
+        console.log('3. Current user:', currentUser?.user?.email || 'No user data');
       } else {
         console.log('3. No current user (not signed in)');
       }
