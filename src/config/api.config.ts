@@ -21,6 +21,7 @@ export const API_CONFIG = {
 
         // Users
         USERS: {
+            PROFILE: '/users/profile',
             ADDRESSES: '/users/addresses',
             BY_ID: (id: string) => `/users/${id}`,
         },

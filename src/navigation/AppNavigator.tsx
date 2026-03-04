@@ -131,7 +131,7 @@ const MainTabNavigator = () => {
 
 export const AppNavigator = () => {
   const dispatch = useAppDispatch();
-  const { isAuthenticated, token, accessToken, isGuestMode } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, accessToken, isGuestMode } = useAppSelector((state) => state.auth);
   const { isOffline, isServiceUnavailable } = useAppSelector((state) => state.appSettings);
 
   const handleRetry = async () => {
@@ -163,7 +163,7 @@ export const AppNavigator = () => {
             gestureEnabled: true,
           }}
         >
-          {((isAuthenticated && (token || accessToken)) || isGuestMode) ? (
+          {((isAuthenticated && (accessToken || accessToken)) || isGuestMode) ? (
             <Stack.Group>
               <Stack.Screen name="Main" component={MainTabNavigator} />
               <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} />

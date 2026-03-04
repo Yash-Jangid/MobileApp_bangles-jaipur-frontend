@@ -125,7 +125,7 @@ const VerifyEmailOTPScreen = () => {
 
             showToast('Account created successfully!', 'success');
             setTimeout(() => {
-                navigation.navigate('Main');
+                navigation.navigate('Main' as any); // Type assertion for tab navigator
             }, 1000);
         } catch (err: any) {
             setError(err.message || 'Invalid OTP. Please try again.');

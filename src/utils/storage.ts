@@ -1,32 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 class StorageService {
-  // Auth token management
-  async setAuthToken(token: string): Promise<void> {
-    try {
-      if (!token) return;
-      await AsyncStorage.setItem('auth_token', token);
-    } catch (error) {
-      console.error('Error saving auth token:', error);
-    }
-  }
-
-  async getAuthToken(): Promise<string | null> {
-    try {
-      return await AsyncStorage.getItem('auth_token');
-    } catch (error) {
-      console.error('Error getting auth token:', error);
-      return null;
-    }
-  }
-
-  async removeAuthToken(): Promise<void> {
-    try {
-      await AsyncStorage.removeItem('auth_token');
-    } catch (error) {
-      console.error('Error removing auth token:', error);
-    }
-  }
+  // Legacy auth token methods removed - use JWT tokens (getAccessToken/getRefreshToken) instead
 
   // User data management
   async setUserData(userData: any): Promise<void> {
@@ -146,7 +121,7 @@ class StorageService {
 
   async clearAuthData(): Promise<void> {
     try {
-      await AsyncStorage.multiRemove(['access_token', 'refresh_token', 'auth_token', 'user_data']);
+      await AsyncStorage.multiRemove(['access_token', 'refresh_token', 'user_data']);
     } catch (error) {
       console.error('Error clearing auth data:', error);
     }
